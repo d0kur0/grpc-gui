@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+@plugin "daisyui" {
+  themes: light --default, dracula --prefersdark;
+}
+
+.layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 300px 1fr;
+}
+
+.layout__sidebar {
+  @apply bg-base-200 border-r-1 border-base-300;
+}
+
+.layout__content {
+  @apply bg-base-100;
+}
