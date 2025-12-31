@@ -1,16 +1,17 @@
 package models
 
 import (
-	"time"
-
 	"gorm.io/gorm"
 )
+
+type ServerAddress struct {
+	Name    string
+	Address string
+}
 
 type Server struct {
 	*gorm.Model
 
 	Name      string
-	Address   string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	Addresses []ServerAddress
 }
