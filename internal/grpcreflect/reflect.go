@@ -3,6 +3,7 @@ package grpcreflect
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 
 	"github.com/jhump/protoreflect/grpcreflect"
@@ -22,17 +23,24 @@ type ReflectorOptions struct {
 	Insecure bool
 }
 
+type EnumValueInfo struct {
+	Name   string
+	Number int32
+}
+
 type FieldInfo struct {
-	Name     string
-	Type     string
-	Number   int32
-	Repeated bool
-	Optional bool
-	Required bool
-	IsMap    bool
-	MapKey   string
-	MapValue string
-	Message  *MessageInfo
+	Name       string
+	Type       string
+	Number     int32
+	Repeated   bool
+	Optional   bool
+	Required   bool
+	IsMap      bool
+	IsEnum     bool
+	MapKey     string
+	MapValue   string
+	Message    *MessageInfo
+	EnumValues []EnumValueInfo
 }
 
 type MessageInfo struct {
@@ -182,18 +190,46 @@ func extractMessageInfoRecursive(msgDesc protoreflect.MessageDescriptor, visited
 			fieldType = string(field.Enum().FullName())
 		}
 
-		info.Fields = append(info.Fields, FieldInfo{
-			Name:     string(field.Name()),
-			Type:     fieldType,
-			Number:   int32(field.Number()),
-			Repeated: field.Cardinality() == protoreflect.Repeated && !field.IsMap(),
-			Optional: field.Cardinality() == protoreflect.Optional,
-			Required: field.Cardinality() == protoreflect.Required,
-			IsMap:    isMap,
-			MapKey:   mapKey,
-			MapValue: mapValue,
-			Message:  nestedMsg,
-		})
+		var enumValues []EnumValueInfo
+		isEnum := false
+		if field.Enum() != nil {
+			isEnum = true
+			enumDesc := field.Enum()
+			values := enumDesc.Values()
+			for i := 0; i < values.Len(); i++ {
+				value := values.Get(i)
+				enumValues = append(enumValues, EnumValueInfo{
+					Name:   string(value.Name()),
+					Number: int32(value.Number()),
+				})
+			}
+		} else if field.IsMap() && field.MapValue().Enum() != nil {
+			enumDesc := field.MapValue().Enum()
+			values := enumDesc.Values()
+			for i := 0; i < values.Len(); i++ {
+				value := values.Get(i)
+				enumValues = append(enumValues, EnumValueInfo{
+					Name:   string(value.Name()),
+					Number: int32(value.Number()),
+				})
+			}
+		}
+
+		fieldInfo := FieldInfo{
+			Name:       string(field.Name()),
+			Type:       fieldType,
+			Number:     int32(field.Number()),
+			Repeated:   field.Cardinality() == protoreflect.Repeated && !field.IsMap(),
+			Optional:   field.Cardinality() == protoreflect.Optional,
+			Required:   field.Cardinality() == protoreflect.Required,
+			IsMap:      isMap,
+			IsEnum:     isEnum,
+			MapKey:     mapKey,
+			MapValue:   mapValue,
+			Message:    nestedMsg,
+			EnumValues: enumValues,
+		}
+		info.Fields = append(info.Fields, fieldInfo)
 	}
 
 	return info
@@ -240,4 +276,88 @@ func fieldKindToString(kind protoreflect.Kind) string {
 	default:
 		return kind.String()
 	}
+}
+
+func GenerateJSONExample(msg *MessageInfo) ([]byte, error) {
+	if msg == nil {
+		return []byte("{}"), nil
+	}
+
+	data := generateJSONValue(msg, make(map[string]bool))
+	return json.MarshalIndent(data, "", "  ")
+}
+
+func generateJSONValue(msg *MessageInfo, visited map[string]bool) map[string]interface{} {
+	if msg == nil {
+		return nil
+	}
+
+	fullName := msg.Name
+	if visited[fullName] {
+		return map[string]interface{}{}
+	}
+	visited[fullName] = true
+
+	result := make(map[string]interface{})
+
+	for _, field := range msg.Fields {
+		result[field.Name] = generateFieldValue(field, visited)
+	}
+
+	delete(visited, fullName)
+	return result
+}
+
+func generateFieldValue(field FieldInfo, visited map[string]bool) interface{} {
+	if field.IsMap {
+		return map[string]interface{}{}
+	}
+
+	if field.Repeated {
+		if field.Message != nil {
+			return []interface{}{generateJSONValue(field.Message, visited)}
+		}
+		return []interface{}{getDefaultValueForField(field)}
+	}
+
+	if field.Message != nil {
+		return generateJSONValue(field.Message, visited)
+	}
+
+	return getDefaultValueForField(field)
+}
+
+func getDefaultValueForType(typeStr string) interface{} {
+	switch typeStr {
+	case "bool":
+		return false
+	case "int32", "sint32", "sfixed32":
+		return 0
+	case "int64", "sint64", "sfixed64":
+		return int64(0)
+	case "uint32", "fixed32":
+		return uint32(0)
+	case "uint64", "fixed64":
+		return uint64(0)
+	case "float":
+		return float32(0.0)
+	case "double":
+		return 0.0
+	case "string":
+		return ""
+	case "bytes":
+		return ""
+	default:
+		if len(typeStr) > 0 {
+			return "UNKNOWN"
+		}
+		return ""
+	}
+}
+
+func getDefaultValueForField(field FieldInfo) interface{} {
+	if len(field.EnumValues) > 0 {
+		return field.EnumValues[0].Name
+	}
+	return getDefaultValueForType(field.Type)
 }

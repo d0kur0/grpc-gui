@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package testserver;
+
+option go_package = "grpc-gui/testserver/proto";
+
+enum Status {
+  UNKNOWN = 0;
+  PENDING = 1;
+  ACTIVE = 2;
+  INACTIVE = 3;
+  DELETED = 4;
+}
+
+enum Priority {
+  LOW = 0;
+  MEDIUM = 1;
+  HIGH = 2;
+  CRITICAL = 3;
+}
+
+message Address {
+  string street = 1;
+  string city = 2;
+  string country = 3;
+  int32 zip_code = 4;
+}
+
+message User {
+  int64 id = 1;
+  string name = 2;
+  string email = 3;
+  bool active = 4;
+  double balance = 5;
+  float score = 6;
+  int32 age = 7;
+  uint32 points = 8;
+  sint32 signed_points = 9;
+  fixed64 fixed_id = 10;
+  sfixed32 sfixed_value = 11;
+  bytes avatar = 12;
+  Status status = 13;
+  repeated string tags = 14;
+  repeated int32 numbers = 15;
+  Address address = 16;
+  map<string, string> metadata = 17;
+  map<int32, Address> address_map = 18;
+  repeated Address addresses = 19;
+}
+
+message NestedMessage {
+  string name = 1;
+  NestedMessage nested = 2;
+  repeated NestedMessage children = 3;
+}
+
+message ComplexRequest {
+  User user = 1;
+  repeated User users = 2;
+  map<string, User> user_map = 3;
+  NestedMessage nested = 4;
+  Status status = 5;
+  repeated Status statuses = 6;
+  map<string, Status> status_map = 7;
+  oneof payload {
+    string text = 8;
+    int32 number = 9;
+    User user_payload = 10;
+  }
+  repeated int64 timestamps = 11;
+  repeated double prices = 12;
+  repeated bool flags = 13;
+  map<int64, string> id_to_name = 14;
+  bytes raw_data = 15;
+}
+
+message ComplexResponse {
+  User user = 1;
+  repeated User users = 2;
+  map<string, User> results = 3;
+  Status status = 4;
+  repeated string messages = 5;
+  int32 count = 6;
+  double total = 7;
+  NestedMessage nested = 8;
+  repeated NestedMessage tree = 9;
+  map<int32, NestedMessage> nodes = 10;
+}
+
+message SimpleRequest {
+  string message = 1;
+  int32 value = 2;
+}
+
+message SimpleResponse {
+  string result = 1;
+  int32 processed = 2;
+}
+
+message StreamRequest {
+  int32 id = 1;
+  string data = 2;
+}
+
+message StreamResponse {
+  int32 id = 1;
+  string result = 2;
+  Status status = 3;
+}
+
+message EmptyRequest {}
+
+message EmptyResponse {}
+
+service TestService {
+  rpc SimpleCall(SimpleRequest) returns (SimpleResponse);
+  rpc ComplexCall(ComplexRequest) returns (ComplexResponse);
+  rpc EmptyCall(EmptyRequest) returns (EmptyResponse);
+  rpc ServerStream(SimpleRequest) returns (stream StreamResponse);
+  rpc ClientStream(stream StreamRequest) returns (ComplexResponse);
+  rpc BidirectionalStream(stream StreamRequest) returns (stream StreamResponse);
+}
+
+service AnotherService {
+  rpc GetUser(SimpleRequest) returns (User);
+  rpc GetUsers(EmptyRequest) returns (ComplexResponse);
+  rpc UpdateStatus(ComplexRequest) returns (SimpleResponse);
+}
