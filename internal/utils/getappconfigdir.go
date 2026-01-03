@@ -2,9 +2,9 @@ package utils
 
 import (
 	"fmt"
-	"grpc-gui/internal/consts"
 	"os"
 	"path/filepath"
+	"resocks5/internal/consts"
 )
 
 func GetAppConfigDir() (string, error) {

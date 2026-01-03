@@ -1,6 +1,7 @@
 /* @refresh reload */
 import { render } from "solid-js/web";
 import "solid-devtools";
+import "@wailsio/runtime";
 
 import { App } from "./App";
 

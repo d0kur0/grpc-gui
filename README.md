@@ -1,19 +1,33 @@
-# README
+# Че за хуйня?
 
-## About
+Это просто ебучий прокси сервер для прокси сервера, чтобы поднять локальный socks5 сервер, который ходит на удаленный socks5 сервер.
 
-This is the official Wails React template.
+![Not Started](.github/assets/not_started.png)
+![Started](.github/assets/started.png)
+![Settings](.github/assets/settings.png)
 
-You can configure the project by editing `wails.json`. More information about the project settings can be found
-here: https://wails.io/docs/reference/project-config
+# А нахуя, ты что ебанутый?
 
-## Live Development
+Ну тут нужно по порядку
 
-To run in live development mode, run `wails dev` in the project directory. This will run a Vite development
-server that will provide very fast hot reload of your frontend changes. If you want to develop in a browser
-and have access to your Go methods, there is also a dev server that runs on http://localhost:34115. Connect
-to this in your browser, and you can call your Go code from devtools.
+### Ебаный Хромиум
 
-## Building
+Ебаный Google Chrome, и все ебаные браузеры на том же пидорском движке имеют одну проблему: нихуя не умеют в socks5 прокси сервера с авторизацией
 
-To build a redistributable, production mode package, use `wails build`.
+Все ахуенно работает, пока у тебя анонимная авторизация, но я же не умалишенный держать удаленный socks5 сервер без пароля (к слову в ебаном firefox такой проблемы нет, но есть другая - firefox залупа, которой невозможно пользоваться)
+
+### Ебаный сплит тунелинг в Amnezia
+
+Оно умеет красиво разделять трафик только по заранее описанным ipv4 адресам, нельзя просто скопрмить какой-то домен и сказать - ты через VPN, потому, что большая часть ебучий ресурсов в интернете за CDN сетками, типа клаудфлейра, из-за чего это раздельное тунелирование до конца нихуя не работает нормально.
+
+Я иду на сайт, который мне деет эти ебаные geo-ip списки, выбираю "YOUTUBE", он дает мне все подсетки гугла, но почему-то после этого у меня половина интернета хуярит через VPN, тот же faceit перестает давать выбирать MSK сервера для игры, пиздец.
+
+А еще есть же этот, рабочий VPN, нельзя просто врубить VPN на все (без сплит тунелирования), тогда начнут конфликтовать рабочий и "свой"
+
+### А че в итоге то
+
+Ну так вот, а socks5 в браузере позвоялет роутить это все на базе доменов, да и чаще всего VPN нужен именно в браузере, остальное - похуй
+
+Если ты знаешь какой-то ахуенный вариант настройки, какой-то клиент VPN и всей этой хуйни, который нормально роутит на базе доменов - расскажи, если не жалко конечно, например через issues.
+
+В хроме юзаю этот плагин для менеджмента прокси, удобные профили и вайт / блек листы https://helebest.github.io/x-proxy/
