@@ -2,26 +2,19 @@ package grpcreflect
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"grpc-gui/internal/utils"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type Reflector struct {
 	conn   *grpc.ClientConn
 	client *grpcreflect.Client
-}
-
-type ReflectorOptions struct {
-	UseTLS   bool
-	Insecure bool
 }
 
 type EnumValueInfo struct {
@@ -66,22 +59,10 @@ type ServicesInfo struct {
 	Services []ServiceInfo `json:"services"`
 }
 
-func NewReflector(ctx context.Context, url string, opts *ReflectorOptions) (*Reflector, error) {
-	var creds credentials.TransportCredentials
-
-	if opts != nil && opts.UseTLS {
-		if opts.Insecure {
-			creds = credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})
-		} else {
-			creds = credentials.NewTLS(&tls.Config{})
-		}
-	} else {
-		creds = insecure.NewCredentials()
-	}
-
-	conn, err := grpc.DialContext(ctx, url, grpc.WithTransportCredentials(creds))
+func NewReflector(ctx context.Context, url string, opts *utils.GRPCConnectOptions) (*Reflector, error) {
+	conn, err := utils.CreateGRPCConnect(url, opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to dial server: %w", err)
+		return nil, fmt.Errorf("failed to create grpc connect: %w", err)
 	}
 
 	client := grpcreflect.NewClientAuto(ctx, conn)

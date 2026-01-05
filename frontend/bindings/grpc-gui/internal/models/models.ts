@@ -12,7 +12,7 @@ export interface Server {
     "id": number;
     "createdAt": time$0.Time;
     "updatedAt": time$0.Time;
-    "deletedAt"?: gorm$0.DeletedAt;
+    "deletedAt": gorm$0.DeletedAt;
     "name": string;
     "address": string;
     "optUseTLS": boolean;

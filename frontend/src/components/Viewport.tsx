@@ -3,6 +3,7 @@ import "./Viewport.css";
 import { Window } from "@wailsio/runtime";
 import { RiDevelopmentTerminalBoxFill } from "solid-icons/ri";
 import { FaSolidArrowRightLong } from "solid-icons/fa";
+import { useNavigate } from "@solidjs/router";
 
 type ViewportProps = {
 	subtitle?: string;
@@ -11,6 +12,8 @@ type ViewportProps = {
 
 export const Viewport = (props: ViewportProps) => {
 	const [isMaximised, setIsMaximised] = createSignal(false);
+
+	const navigate = useNavigate();
 
 	createEffect(async () => {
 		const isMaximised = await Window.IsMaximised();
@@ -31,10 +34,12 @@ export const Viewport = (props: ViewportProps) => {
 	};
 
 	return (
-		<div class="viewport">
+		<div class="viewport select-none">
 			<div class="viewport__controls">
 				<div class="viewport__title">
-					grpc-gui
+					<button class="cursor-pointer" onClick={() => navigate("/")}>
+						grpc-gui
+					</button>
 					<Show when={props.subtitle}>
 						<FaSolidArrowRightLong />
 						<span class="viewport__subtitle">{props.subtitle}</span>

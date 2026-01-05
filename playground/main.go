@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"grpc-gui/internal/grpcreflect"
+	"grpc-gui/internal/utils"
 	"log"
 	"time"
 
@@ -13,7 +14,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	reflect, err := grpcreflect.NewReflector(ctx, "localhost:50051", &grpcreflect.ReflectorOptions{UseTLS: false})
+	reflect, err := grpcreflect.NewReflector(ctx, "localhost:50051", &utils.GRPCConnectOptions{UseTLS: false})
 	if err != nil {
 		log.Fatalf("Failed to create reflector: %v", err)
 	}

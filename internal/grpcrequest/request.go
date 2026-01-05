@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"grpc-gui/internal/grpcreflect"
+	"grpc-gui/internal/utils"
 
 	"github.com/jhump/protoreflect/dynamic"
 	"google.golang.org/grpc"
@@ -30,7 +31,7 @@ func DoGRPCRequest(address, service, method, payload string, requestHeaders, con
 		ctx = metadata.NewOutgoingContext(ctx, md)
 	}
 
-	reflector, err := grpcreflect.NewReflector(ctx, address, &grpcreflect.ReflectorOptions{UseTLS: false})
+	reflector, err := grpcreflect.NewReflector(ctx, address, &utils.GRPCConnectOptions{UseTLS: false})
 	if err != nil {
 		return "", codes.Unknown, nil, fmt.Errorf("failed to create reflector: %w", err)
 	}

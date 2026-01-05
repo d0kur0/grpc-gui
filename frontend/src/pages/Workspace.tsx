@@ -2,6 +2,7 @@ import { For } from "solid-js";
 import { Viewport } from "../components/Viewport";
 import { $servers } from "../stores/servers";
 import "./Workspace.css";
+import { useNavigate } from "@solidjs/router";
 
 export const Workspace = () => {
 	return (
@@ -17,12 +18,19 @@ export const Workspace = () => {
 
 const WorkspaceMenu = () => {
 	const { servers } = $servers;
+	const navigate = useNavigate();
+
+	const handleAddService = () => {
+		navigate("/add-service");
+	};
 
 	return (
 		<div class="workspace__menu">
 			<div class="flex justify-between items-center">
 				<div class="font-extrabold text-sm text-base-content/70">Мои сервисы</div>
-				<button class="btn btn-xs btn-primary">Добавить сервис</button>
+				<button class="btn btn-xs btn-primary" onClick={handleAddService}>
+					Добавить сервис
+				</button>
 			</div>
 
 			<div class="mt-6">

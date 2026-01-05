@@ -6,6 +6,7 @@ import (
 	"grpc-gui/internal/grpcreflect"
 	"grpc-gui/internal/grpcrequest"
 	"grpc-gui/internal/models"
+	"grpc-gui/internal/utils"
 )
 
 func (a *App) CreateServer(server *models.Server) error {
@@ -30,7 +31,7 @@ func (a *App) GetServerReflection(id uint) (*models.Server, error) {
 		return nil, err
 	}
 
-	reflection, err := grpcreflect.NewReflector(a.ctx, server.Address, &grpcreflect.ReflectorOptions{UseTLS: server.OptUseTLS, Insecure: server.OptInsecure})
+	reflection, err := grpcreflect.NewReflector(a.ctx, server.Address, &utils.GRPCConnectOptions{UseTLS: server.OptUseTLS, Insecure: server.OptInsecure})
 	if err != nil {
 		return nil, err
 	}
