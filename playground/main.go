@@ -13,7 +13,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	reflect, err := grpcreflect.NewReflector(ctx, "localhost:50051", grpcreflect.ReflectorOptions{UseTLS: false})
+	reflect, err := grpcreflect.NewReflector(ctx, "localhost:50051", &grpcreflect.ReflectorOptions{UseTLS: false})
 	if err != nil {
 		log.Fatalf("Failed to create reflector: %v", err)
 	}
@@ -24,5 +24,20 @@ func main() {
 		log.Fatalf("Failed to get services info: %v", err)
 	}
 
-	pp.Println(servicesInfo)
+	for _, s := range servicesInfo.Services {
+		for _, m := range s.Methods {
+
+			if m.Name != "GetUser" {
+				continue
+			}
+
+			j := grpcreflect.GenerateJSONValue(m.Response, make(map[string]bool))
+			pp.Println(j)
+
+			a, _ := grpcreflect.GenerateJSONExample(m.Response)
+
+			log.Println(string(a))
+		}
+	}
+
 }

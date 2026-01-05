@@ -1,0 +1,20 @@
+@reference "../App.css";
+
+.workspace {
+	display: grid;
+	grid-template-columns: 300px 1fr;
+	grid-template-rows: 1fr;
+	grid-template-areas: "menu body";
+	min-height: 100%;
+}
+
+.workspace__menu {
+	@apply border-r-2 border-base-content/10 p-4 bg-base-200;
+	grid-area: menu;
+	height: 100%;
+}
+
+.workspace__body {
+	grid-area: body;
+	@apply p-4;
+}

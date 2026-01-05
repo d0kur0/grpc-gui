@@ -1,17 +1,20 @@
 package models
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
-type ServerAddress struct {
-	Name    string
-	Address string
-}
-
 type Server struct {
-	*gorm.Model
+	ID        uint           `gorm:"primarykey" json:"id"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt,omitempty"`
 
-	Name      string
-	Addresses []ServerAddress
+	Name    string `json:"name"`
+	Address string `json:"address"`
+
+	OptUseTLS   bool `json:"optUseTLS"`
+	OptInsecure bool `json:"optInsecure"`
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -24,51 +25,51 @@ type ReflectorOptions struct {
 }
 
 type EnumValueInfo struct {
-	Name   string
-	Number int32
+	Name   string `json:"name"`
+	Number int32  `json:"number"`
 }
 
 type FieldInfo struct {
-	Name       string
-	Type       string
-	Number     int32
-	Repeated   bool
-	Optional   bool
-	Required   bool
-	IsMap      bool
-	IsEnum     bool
-	MapKey     string
-	MapValue   string
-	Message    *MessageInfo
-	EnumValues []EnumValueInfo
+	Name       string          `json:"name"`
+	Type       string          `json:"type"`
+	Number     int32           `json:"number"`
+	Repeated   bool            `json:"repeated"`
+	Optional   bool            `json:"optional"`
+	Required   bool            `json:"required"`
+	IsMap      bool            `json:"isMap"`
+	IsEnum     bool            `json:"isEnum"`
+	MapKey     string          `json:"mapKey"`
+	MapValue   string          `json:"mapValue"`
+	Message    *MessageInfo    `json:"message,omitempty"`
+	EnumValues []EnumValueInfo `json:"enumValues,omitempty"`
 }
 
 type MessageInfo struct {
-	Name   string
-	Fields []FieldInfo
+	Name   string      `json:"name"`
+	Fields []FieldInfo `json:"fields"`
 }
 
 type MethodInfo struct {
-	Name         string
-	RequestType  string
-	ResponseType string
-	Request      *MessageInfo
-	Response     *MessageInfo
+	Name         string       `json:"name"`
+	RequestType  string       `json:"requestType"`
+	ResponseType string       `json:"responseType"`
+	Request      *MessageInfo `json:"request,omitempty"`
+	Response     *MessageInfo `json:"response,omitempty"`
 }
 
 type ServiceInfo struct {
-	Name    string
-	Methods []MethodInfo
+	Name    string       `json:"name"`
+	Methods []MethodInfo `json:"methods"`
 }
 
 type ServicesInfo struct {
-	Services []ServiceInfo
+	Services []ServiceInfo `json:"services"`
 }
 
-func NewReflector(ctx context.Context, url string, opts ReflectorOptions) (*Reflector, error) {
+func NewReflector(ctx context.Context, url string, opts *ReflectorOptions) (*Reflector, error) {
 	var creds credentials.TransportCredentials
 
-	if opts.UseTLS {
+	if opts != nil && opts.UseTLS {
 		if opts.Insecure {
 			creds = credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})
 		} else {
@@ -94,6 +95,10 @@ func NewReflector(ctx context.Context, url string, opts ReflectorOptions) (*Refl
 func (r *Reflector) Close() error {
 	r.client.Reset()
 	return r.conn.Close()
+}
+
+func (r *Reflector) GetServiceDescriptor(serviceName string) (*desc.ServiceDescriptor, error) {
+	return r.client.ResolveService(serviceName)
 }
 
 func (r *Reflector) GetAllServicesInfo() (*ServicesInfo, error) {
@@ -283,11 +288,11 @@ func GenerateJSONExample(msg *MessageInfo) ([]byte, error) {
 		return []byte("{}"), nil
 	}
 
-	data := generateJSONValue(msg, make(map[string]bool))
+	data := GenerateJSONValue(msg, make(map[string]bool))
 	return json.MarshalIndent(data, "", "  ")
 }
 
-func generateJSONValue(msg *MessageInfo, visited map[string]bool) map[string]interface{} {
+func GenerateJSONValue(msg *MessageInfo, visited map[string]bool) map[string]interface{} {
 	if msg == nil {
 		return nil
 	}
@@ -315,13 +320,13 @@ func generateFieldValue(field FieldInfo, visited map[string]bool) interface{} {
 
 	if field.Repeated {
 		if field.Message != nil {
-			return []interface{}{generateJSONValue(field.Message, visited)}
+			return []interface{}{GenerateJSONValue(field.Message, visited)}
 		}
 		return []interface{}{getDefaultValueForField(field)}
 	}
 
 	if field.Message != nil {
-		return generateJSONValue(field.Message, visited)
+		return GenerateJSONValue(field.Message, visited)
 	}
 
 	return getDefaultValueForField(field)

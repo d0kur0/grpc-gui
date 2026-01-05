@@ -4,10 +4,10 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "start": "vite",
     "dev": "vite",
-    "build": "vite build",
-    "serve": "vite preview"
+    "build:dev": "vite build --minify false --mode development",
+    "build": "vite build --mode production",
+    "preview": "vite preview"
   },
   "license": "MIT",
   "devDependencies": {
@@ -19,7 +19,9 @@
   "dependencies": {
     "@solidjs/router": "^0.15.4",
     "@tailwindcss/vite": "^4.1.18",
+    "@wailsio/runtime": "^3.0.0-alpha.78",
     "daisyui": "^5.5.14",
+    "solid-icons": "^1.1.0",
     "solid-js": "^1.9.5",
     "tailwindcss": "^4.1.18"
   }

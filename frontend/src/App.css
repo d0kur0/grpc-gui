@@ -1,20 +1,41 @@
 @import "tailwindcss";
 @plugin "daisyui";
 
+@plugin "daisyui/theme" {
+	name: "cdark";
+	default: false;
+	prefersdark: true;
+	color-scheme: "dark";
+	--color-base-100: oklch(14% 0.005 285.823);
+	--color-base-200: oklch(21% 0.006 285.885);
+	--color-base-300: oklch(27% 0.006 286.033);
+	--color-base-content: oklch(96% 0.001 286.375);
+	--color-primary: oklch(82% 0.111 230.318);
+	--color-primary-content: oklch(29% 0.066 243.157);
+	--color-secondary: oklch(90% 0.182 98.111);
+	--color-secondary-content: oklch(28% 0.066 53.813);
+	--color-accent: oklch(84% 0.143 164.978);
+	--color-accent-content: oklch(26% 0.051 172.552);
+	--color-neutral: oklch(14% 0.005 285.823);
+	--color-neutral-content: oklch(98% 0 0);
+	--color-info: oklch(74% 0.16 232.661);
+	--color-info-content: oklch(29% 0.066 243.157);
+	--color-success: oklch(77% 0.152 181.912);
+	--color-success-content: oklch(27% 0.046 192.524);
+	--color-warning: oklch(82% 0.189 84.429);
+	--color-warning-content: oklch(27% 0.077 45.635);
+	--color-error: oklch(70% 0.191 22.216);
+	--color-error-content: oklch(25% 0.092 26.042);
+	--radius-selector: 0.5rem;
+	--radius-field: 0.5rem;
+	--radius-box: 1rem;
+	--size-selector: 0.1875rem;
+	--size-field: 0.21875rem;
+	--border: 0.5px;
+	--depth: 1;
+	--noise: 1;
+}
+
 @plugin "daisyui" {
-  themes: light --default, dracula --prefersdark;
-}
-
-.layout {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 300px 1fr;
-}
-
-.layout__sidebar {
-  @apply bg-base-200 border-r-1 border-base-300;
-}
-
-.layout__content {
-  @apply bg-base-100;
+	themes: light --default, cdark --prefersdark;
 }

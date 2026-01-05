@@ -196,7 +196,7 @@ func TestGenerateJSONExample_Integration(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -245,7 +245,7 @@ func TestGenerateJSONExample_ComplexIntegration(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}

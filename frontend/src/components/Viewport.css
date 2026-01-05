@@ -1,0 +1,57 @@
+@reference "../App.css";
+
+.viewport {
+	--controls-height: 36px;
+}
+
+.viewport__controls {
+	--wails-draggable: drag;
+
+	user-select: none;
+	height: var(--controls-height);
+	@apply bg-base-200 px-4 flex items-center border-b-2 border-base-content/10;
+}
+
+.viewport__title {
+	@apply text-base-content/50 font-extrabold text-sm flex-1 flex items-center gap-1;
+}
+
+.viewport__subtitle {
+	@apply text-base-content/70;
+}
+
+.viewport__body {
+	height: calc(100vh - var(--controls-height));
+	overflow: auto;
+}
+
+.viewport__window-controls {
+	@apply flex items-center gap-2;
+}
+
+.viewport__window-control {
+	line-height: 0;
+	@apply w-4 h-4 bg-base-content/10 cursor-pointer rounded-4xl shadow-md;
+	opacity: 0.8;
+	transition: 0.2s ease-in-out;
+}
+
+.viewport__window-control:hover {
+	opacity: 1;
+}
+
+.viewport__window-control-close {
+	@apply bg-error shadow-error/50;
+}
+
+.viewport__window-control-minimize {
+	@apply bg-warning shadow-warning/50;
+}
+
+.viewport__window-control-maximize {
+	@apply bg-success shadow-success/50;
+}
+
+.viewport__app-controls {
+	@apply flex items-center gap-2 mr-6;
+}

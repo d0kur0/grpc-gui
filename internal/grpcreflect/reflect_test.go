@@ -88,7 +88,7 @@ func TestNewReflector(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestGetAllServicesInfo(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -155,7 +155,7 @@ func TestSimpleRequestResponse(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestUserMessageFields(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -380,7 +380,7 @@ func TestMapFields(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -537,7 +537,7 @@ func TestNestedMessage(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -623,7 +623,7 @@ func TestEnumField(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -725,7 +725,7 @@ func TestIsEnumField(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -807,7 +807,7 @@ func TestClose(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -823,7 +823,7 @@ func TestEmptyMessage(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -870,7 +870,7 @@ func TestRepeatedFields(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}
@@ -967,7 +967,7 @@ func TestFieldNumbers(t *testing.T) {
 	defer cleanup()
 
 	ctx := context.Background()
-	reflector, err := NewReflector(ctx, addr, ReflectorOptions{UseTLS: false})
+	reflector, err := NewReflector(ctx, addr, &ReflectorOptions{UseTLS: false})
 	if err != nil {
 		t.Fatalf("NewReflector failed: %v", err)
 	}

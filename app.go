@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"grpc-gui/internal/consts"
+	"grpc-gui/internal/models"
 	"grpc-gui/internal/storage"
-	"grpc-gui/internal/utils"
 	"log"
-	"path/filepath"
 )
 
 type App struct {
@@ -15,16 +13,15 @@ type App struct {
 	storage *storage.SQLiteStorage
 }
 
-func NewApp() *App {
-	appConfigDir, err := utils.GetAppConfigDir()
-	if err != nil {
-		log.Fatalf("failed to get app config dir: %v", err)
-	}
-
-	dbPath := filepath.Join(appConfigDir, consts.AppDbName)
+func NewApp(dbPath string) *App {
 	storage, err := storage.NewSQLiteStorage(dbPath)
 	if err != nil {
 		log.Fatalf("failed to create storage: %v", err)
+	}
+
+	err = storage.AutoMigrate(&models.Server{}, &models.History{})
+	if err != nil {
+		log.Fatalf("failed to migrate database: %v", err)
 	}
 
 	return &App{storage: storage}
