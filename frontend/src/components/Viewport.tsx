@@ -1,9 +1,13 @@
-import { createEffect, createSignal, JSX, Show } from "solid-js";
+import { createEffect, createSignal, For, JSX, Show } from "solid-js";
 import "./Viewport.css";
 import { Window } from "@wailsio/runtime";
 import { RiDevelopmentTerminalBoxFill } from "solid-icons/ri";
-import { FaSolidArrowRightLong } from "solid-icons/fa";
+import { FaSolidArrowRightLong, FaSolidCircleInfo } from "solid-icons/fa";
 import { useNavigate } from "@solidjs/router";
+import { $notifications, NotificationType } from "../stores/notifications";
+import { AiTwotoneCheckCircle } from "solid-icons/ai";
+import { BiRegularErrorCircle } from "solid-icons/bi";
+import { IoWarning } from "solid-icons/io";
 
 type ViewportProps = {
 	subtitle?: string;
@@ -65,6 +69,56 @@ export const Viewport = (props: ViewportProps) => {
 				</div>
 			</div>
 			<div class="viewport__body">{props.children}</div>
+
+			<Notifications />
+		</div>
+	);
+};
+
+const notificationClasses = {
+	[NotificationType.SUCCESS]: "alert-success",
+	[NotificationType.ERROR]: "alert-error",
+	[NotificationType.WARNING]: "alert-warning",
+	[NotificationType.INFO]: "alert-info",
+};
+
+const notificationIcons = {
+	[NotificationType.SUCCESS]: AiTwotoneCheckCircle,
+	[NotificationType.ERROR]: BiRegularErrorCircle,
+	[NotificationType.WARNING]: IoWarning,
+	[NotificationType.INFO]: FaSolidCircleInfo,
+};
+
+const Notifications = () => {
+	const { notifications } = $notifications;
+
+	return (
+		<div class="absolute bottom-5 right-5 flex flex-col gap-2 max-w-lg">
+			<For each={notifications()}>
+				{notification => {
+					const Icon = notificationIcons[notification.type];
+					return (
+						<button
+							role="alert"
+							class="alert cursor-pointer alert-vertical sm:alert-horizontal"
+							classList={{
+								[notificationClasses[notification.type]]: true,
+							}}
+							onClick={() => notification.onClose?.()}>
+							<Show when={Icon}>
+								<Icon class="w-5 h-5" />
+							</Show>
+							<div>
+								<Show when={notification.title}>
+									<h3 class="font-bold">{notification.title}</h3>
+								</Show>
+								<div class="text-xs">{notification.message}</div>
+							</div>
+							<Show when={notification.customContent}>{notification.customContent}</Show>
+						</button>
+					);
+				}}
+			</For>
 		</div>
 	);
 };

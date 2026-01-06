@@ -14,8 +14,17 @@ const createServersStore = () => {
 		setServers(servers);
 	});
 
+	const refreshServers = async () => {
+		const servers = await GetServers();
+		if (!servers) {
+			throw new Error("Failed to get servers");
+		}
+		setServers(servers);
+	};
+
 	return {
 		servers,
+		refreshServers,
 	};
 };
 

@@ -5,3 +5,11 @@ import * as App from "./app.js";
 export {
     App
 };
+
+export {
+    ValidationStatus
+} from "./models.js";
+
+export type {
+    ValidationResult
+} from "./models.js";

@@ -1,15 +1,12 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"grpc-gui/internal/models"
 	"grpc-gui/internal/storage"
 	"log"
 )
 
 type App struct {
-	ctx     context.Context
 	storage *storage.SQLiteStorage
 }
 
@@ -25,12 +22,4 @@ func NewApp(dbPath string) *App {
 	}
 
 	return &App{storage: storage}
-}
-
-func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
-}
-
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
 }

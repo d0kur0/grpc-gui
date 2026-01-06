@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"testing"
 
@@ -18,7 +17,6 @@ func setupTestApp(t *testing.T) (*App, func()) {
 	tmpFile.Close()
 
 	app := NewApp(tmpFile.Name())
-	app.startup(context.Background())
 
 	err = app.storage.AutoMigrate(&models.Server{}, &models.History{})
 	if err != nil {
@@ -34,19 +32,12 @@ func TestApp_CreateServer(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	server := &models.Server{
-		Name:        "Test Server",
-		Address:     "localhost:50051",
-		OptUseTLS:   false,
-		OptInsecure: false,
-	}
-
-	err := app.CreateServer(server)
+	id, err := app.CreateServer("Test Server", "localhost:50051", false, false)
 	if err != nil {
 		t.Fatalf("CreateServer failed: %v", err)
 	}
 
-	if server.ID == 0 {
+	if id == 0 {
 		t.Error("expected server ID to be set")
 	}
 }
@@ -55,22 +46,36 @@ func TestApp_CreateServer_WithTLS(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	server := &models.Server{
-		Name:        "TLS Server",
-		Address:     "localhost:50051",
-		OptUseTLS:   true,
-		OptInsecure: true,
-	}
-
-	err := app.CreateServer(server)
+	id, err := app.CreateServer("TLS Server", "localhost:50051", true, true)
 	if err != nil {
 		t.Fatalf("CreateServer failed: %v", err)
 	}
 
-	if !server.OptUseTLS {
+	if id == 0 {
+		t.Error("expected server ID to be set")
+	}
+
+	servers, err := app.GetServers()
+	if err != nil {
+		t.Fatalf("GetServers failed: %v", err)
+	}
+
+	var found *models.Server
+	for i := range servers {
+		if servers[i].ID == id {
+			found = &servers[i]
+			break
+		}
+	}
+
+	if found == nil {
+		t.Fatal("server not found")
+	}
+
+	if !found.OptUseTLS {
 		t.Error("expected OptUseTLS to be true")
 	}
-	if !server.OptInsecure {
+	if !found.OptInsecure {
 		t.Error("expected OptInsecure to be true")
 	}
 }
@@ -79,17 +84,8 @@ func TestApp_GetServers(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	server1 := &models.Server{
-		Name:    "Server 1",
-		Address: "localhost:50051",
-	}
-	server2 := &models.Server{
-		Name:    "Server 2",
-		Address: "localhost:50052",
-	}
-
-	app.CreateServer(server1)
-	app.CreateServer(server2)
+	app.CreateServer("Server 1", "localhost:50051", false, false)
+	app.CreateServer("Server 2", "localhost:50052", false, false)
 
 	servers, err := app.GetServers()
 	if err != nil {
@@ -105,28 +101,17 @@ func TestApp_UpdateServer(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	server := &models.Server{
-		Name:        "Original Name",
-		Address:     "localhost:50051",
-		OptUseTLS:   false,
-		OptInsecure: false,
-	}
-
-	err := app.CreateServer(server)
+	id, err := app.CreateServer("Original Name", "localhost:50051", false, false)
 	if err != nil {
 		t.Fatalf("CreateServer failed: %v", err)
 	}
 
-	server.Name = "Updated Name"
-	server.OptUseTLS = true
-	server.OptInsecure = true
-
-	err = app.UpdateServer(server)
+	err = app.UpdateServer(id, "Updated Name", "localhost:50051", true, true)
 	if err != nil {
 		t.Fatalf("UpdateServer failed: %v", err)
 	}
 
-	updated, err := app.storage.GetServer(server.ID)
+	updated, err := app.storage.GetServer(id)
 	if err != nil {
 		t.Fatalf("GetServer failed: %v", err)
 	}
@@ -146,22 +131,17 @@ func TestApp_DeleteServer(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	server := &models.Server{
-		Name:    "To Delete",
-		Address: "localhost:50051",
-	}
-
-	err := app.CreateServer(server)
+	id, err := app.CreateServer("To Delete", "localhost:50051", false, false)
 	if err != nil {
 		t.Fatalf("CreateServer failed: %v", err)
 	}
 
-	err = app.DeleteServer(server.ID)
+	err = app.DeleteServer(id)
 	if err != nil {
 		t.Fatalf("DeleteServer failed: %v", err)
 	}
 
-	_, err = app.storage.GetServer(server.ID)
+	_, err = app.storage.GetServer(id)
 	if err == nil {
 		t.Error("expected error when getting deleted server")
 	}
@@ -174,19 +154,12 @@ func TestApp_GetServerReflection_WithoutTLS(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	server := &models.Server{
-		Name:        "Test Server",
-		Address:     addr,
-		OptUseTLS:   false,
-		OptInsecure: false,
-	}
-
-	err := app.CreateServer(server)
+	id, err := app.CreateServer("Test Server", addr, false, false)
 	if err != nil {
 		t.Fatalf("CreateServer failed: %v", err)
 	}
 
-	result, err := app.GetServerReflection(server.ID)
+	result, err := app.GetServerReflection(id)
 	if err != nil {
 		t.Fatalf("GetServerReflection failed: %v", err)
 	}
@@ -206,19 +179,12 @@ func TestApp_GetServerReflection_WithTLS_Insecure(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	server := &models.Server{
-		Name:        "TLS Server",
-		Address:     addr,
-		OptUseTLS:   true,
-		OptInsecure: true,
-	}
-
-	err := app.CreateServer(server)
+	id, err := app.CreateServer("TLS Server", addr, true, true)
 	if err != nil {
 		t.Fatalf("CreateServer failed: %v", err)
 	}
 
-	result, err := app.GetServerReflection(server.ID)
+	result, err := app.GetServerReflection(id)
 	if err != nil {
 		t.Fatalf("GetServerReflection failed: %v", err)
 	}
@@ -251,18 +217,13 @@ func TestApp_DoGRPCRequest(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	server := &models.Server{
-		Name:    "Test Server",
-		Address: addr,
-	}
-
-	err := app.CreateServer(server)
+	id, err := app.CreateServer("Test Server", addr, false, false)
 	if err != nil {
 		t.Fatalf("CreateServer failed: %v", err)
 	}
 
 	payload := `{"message": "test", "value": 42}`
-	resp, code, err := app.DoGRPCRequest(server.ID, addr, "testserver.TestService", "SimpleCall", payload, nil, nil)
+	resp, code, err := app.DoGRPCRequest(id, addr, "testserver.TestService", "SimpleCall", payload, nil, nil)
 	if err != nil {
 		t.Fatalf("DoGRPCRequest failed: %v", err)
 	}
@@ -282,12 +243,7 @@ func TestApp_DoGRPCRequest_WithHeaders(t *testing.T) {
 	app, cleanup := setupTestApp(t)
 	defer cleanup()
 
-	server := &models.Server{
-		Name:    "Test Server",
-		Address: addr,
-	}
-
-	err := app.CreateServer(server)
+	id, err := app.CreateServer("Test Server", addr, false, false)
 	if err != nil {
 		t.Fatalf("CreateServer failed: %v", err)
 	}
@@ -301,7 +257,7 @@ func TestApp_DoGRPCRequest_WithHeaders(t *testing.T) {
 	}
 
 	payload := `{"message": "test"}`
-	resp, code, err := app.DoGRPCRequest(server.ID, addr, "testserver.AnotherService", "GetUser", payload, headers, contextValues)
+	resp, code, err := app.DoGRPCRequest(id, addr, "testserver.AnotherService", "GetUser", payload, headers, contextValues)
 	if err != nil {
 		t.Fatalf("DoGRPCRequest failed: %v", err)
 	}
@@ -333,5 +289,47 @@ func TestApp_GetJsonExample(t *testing.T) {
 
 	if json == "" {
 		t.Error("expected non-empty JSON")
+	}
+}
+
+func TestApp_ValidateServerAddress_Success(t *testing.T) {
+	addr, stop := testutil.StartTestServer(t)
+	defer stop()
+
+	app, cleanup := setupTestApp(t)
+	defer cleanup()
+
+	result := app.ValidateServerAddress(addr, false, false)
+	if result.Status != ValidationStatusSuccess {
+		t.Errorf("expected ValidationStatusSuccess, got %d", result.Status)
+	}
+	if result.Message != "" {
+		t.Errorf("expected empty message on success, got %s", result.Message)
+	}
+}
+
+func TestApp_ValidateServerAddress_ConnectionFailed(t *testing.T) {
+	app, cleanup := setupTestApp(t)
+	defer cleanup()
+
+	result := app.ValidateServerAddress("127.0.0.1:1", false, false)
+	if result.Status != ValidationStatusConnectionFailed && result.Status != ValidationStatusReflectionNotAvailable {
+		t.Errorf("expected ValidationStatusConnectionFailed or ValidationStatusReflectionNotAvailable, got %d", result.Status)
+	}
+	if result.Message == "" {
+		t.Error("expected error message, got empty")
+	}
+}
+
+func TestApp_ValidateServerAddress_InvalidAddress(t *testing.T) {
+	app, cleanup := setupTestApp(t)
+	defer cleanup()
+
+	result := app.ValidateServerAddress("invalid:address:12345", false, false)
+	if result.Status != ValidationStatusConnectionFailed && result.Status != ValidationStatusReflectionNotAvailable {
+		t.Errorf("expected ValidationStatusConnectionFailed or ValidationStatusReflectionNotAvailable, got %d", result.Status)
+	}
+	if result.Message == "" {
+		t.Error("expected error message, got empty")
 	}
 }

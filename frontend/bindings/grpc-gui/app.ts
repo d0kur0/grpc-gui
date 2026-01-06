@@ -12,8 +12,12 @@ import * as grpcreflect$0 from "./internal/grpcreflect/models.js";
 // @ts-ignore: Unused imports
 import * as models$0 from "./internal/models/models.js";
 
-export function CreateServer(server: models$0.Server | null): $CancellablePromise<void> {
-    return $Call.ByID(3177189426, server);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
+export function CreateServer(name: string, address: string, useTLS: boolean, insecure: boolean): $CancellablePromise<number> {
+    return $Call.ByID(3177189426, name, address, useTLS, insecure);
 }
 
 export function DeleteServer(id: number): $CancellablePromise<void> {
@@ -36,10 +40,10 @@ export function GetServers(): $CancellablePromise<models$0.Server[] | null> {
     return $Call.ByID(4270553301);
 }
 
-export function Greet(name: string): $CancellablePromise<string> {
-    return $Call.ByID(2659711170, name);
+export function UpdateServer(id: number, name: string, address: string, useTLS: boolean, insecure: boolean): $CancellablePromise<void> {
+    return $Call.ByID(3010445599, id, name, address, useTLS, insecure);
 }
 
-export function UpdateServer(server: models$0.Server | null): $CancellablePromise<void> {
-    return $Call.ByID(3010445599, server);
+export function ValidateServerAddress(address: string, useTLS: boolean, insecure: boolean): $CancellablePromise<$models.ValidationResult> {
+    return $Call.ByID(3191889264, address, useTLS, insecure);
 }

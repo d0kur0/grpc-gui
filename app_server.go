@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"time"
 
 	"grpc-gui/internal/grpcreflect"
 	"grpc-gui/internal/grpcrequest"
@@ -9,8 +11,32 @@ import (
 	"grpc-gui/internal/utils"
 )
 
-func (a *App) CreateServer(server *models.Server) error {
-	return a.storage.CreateServer(server)
+type ValidationStatus int
+
+const (
+	ValidationStatusSuccess ValidationStatus = iota
+	ValidationStatusConnectionFailed
+	ValidationStatusReflectionNotAvailable
+	ValidationStatusNoServices
+)
+
+type ValidationResult struct {
+	Status  ValidationStatus `json:"status"`
+	Message string           `json:"message,omitempty"`
+}
+
+func (a *App) CreateServer(name, address string, useTLS, insecure bool) (uint, error) {
+	server := &models.Server{
+		Name:        name,
+		Address:     address,
+		OptUseTLS:   useTLS,
+		OptInsecure: insecure,
+	}
+	err := a.storage.CreateServer(server)
+	if err != nil {
+		return 0, err
+	}
+	return server.ID, nil
 }
 
 func (a *App) GetServers() ([]models.Server, error) {
@@ -21,7 +47,14 @@ func (a *App) DeleteServer(id uint) error {
 	return a.storage.DeleteServer(id)
 }
 
-func (a *App) UpdateServer(server *models.Server) error {
+func (a *App) UpdateServer(id uint, name, address string, useTLS, insecure bool) error {
+	server := &models.Server{
+		ID:          id,
+		Name:        name,
+		Address:     address,
+		OptUseTLS:   useTLS,
+		OptInsecure: insecure,
+	}
 	return a.storage.UpdateServer(server)
 }
 
@@ -31,7 +64,10 @@ func (a *App) GetServerReflection(id uint) (*models.Server, error) {
 		return nil, err
 	}
 
-	reflection, err := grpcreflect.NewReflector(a.ctx, server.Address, &utils.GRPCConnectOptions{UseTLS: server.OptUseTLS, Insecure: server.OptInsecure})
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	reflection, err := grpcreflect.NewReflector(ctx, server.Address, &utils.GRPCConnectOptions{UseTLS: server.OptUseTLS, Insecure: server.OptInsecure})
 	if err != nil {
 		return nil, err
 	}
@@ -86,4 +122,48 @@ func (a *App) DoGRPCRequest(serverId uint, address, service, method, payload str
 	}
 
 	return resp, int32(code), err
+}
+
+func (a *App) ValidateServerAddress(address string, useTLS, insecure bool) ValidationResult {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	opts := &utils.GRPCConnectOptions{
+		UseTLS:   useTLS,
+		Insecure: insecure,
+	}
+
+	reflection, err := grpcreflect.NewReflector(ctx, address, opts)
+	if err != nil {
+		return ValidationResult{
+			Status:  ValidationStatusConnectionFailed,
+			Message: utils.FormatConnectionError(err, address, useTLS, insecure),
+		}
+	}
+	defer reflection.Close()
+
+	services, err := reflection.GetAllServicesInfo()
+	if err != nil {
+		if utils.IsConnectionError(err) {
+			return ValidationResult{
+				Status:  ValidationStatusConnectionFailed,
+				Message: utils.FormatConnectionError(err, address, useTLS, insecure),
+			}
+		}
+		return ValidationResult{
+			Status:  ValidationStatusReflectionNotAvailable,
+			Message: utils.FormatReflectionError(err),
+		}
+	}
+
+	if services == nil || len(services.Services) == 0 {
+		return ValidationResult{
+			Status:  ValidationStatusNoServices,
+			Message: "Сервер доступен, но не предоставляет сервисы через рефлексию",
+		}
+	}
+
+	return ValidationResult{
+		Status: ValidationStatusSuccess,
+	}
 }
