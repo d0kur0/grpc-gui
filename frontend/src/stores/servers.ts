@@ -1,30 +1,66 @@
 import { createRoot, createSignal, onMount } from "solid-js";
-import { GetServers } from "../../bindings/grpc-gui/app";
-import { Server } from "../../bindings/grpc-gui/internal/models";
+import { GetServersWithReflection, GetServerWithReflection } from "../../bindings/grpc-gui/app";
+import { ServerWithReflection } from "../../bindings/grpc-gui";
+import { $notifications, NotificationType } from "./notifications";
 
 const createServersStore = () => {
-	const [servers, setServers] = createSignal<Server[]>([]);
+	const [servers, setServers] = createSignal<ServerWithReflection[]>([]);
 
-	onMount(async () => {
-		const servers = await GetServers();
-		if (!servers) {
-			throw new Error("Failed to get servers");
-		}
-
-		setServers(servers);
-	});
+	onMount(() => refreshServers());
 
 	const refreshServers = async () => {
-		const servers = await GetServers();
-		if (!servers) {
-			throw new Error("Failed to get servers");
+		try {
+			const servers = await GetServersWithReflection();
+			if (!servers) {
+				throw new Error("GetServersWithReflection returned null");
+			}
+			setServers(servers);
+		} catch (err) {
+			return $notifications.addNotification({
+				type: NotificationType.ERROR,
+				title: "Ошибка",
+				message: "Не удалось получить список сервисов",
+			});
 		}
-		setServers(servers);
+	};
+
+	const refreshServerById = async (serverId: number) => {
+		try {
+			const server = await GetServerWithReflection(serverId);
+			setServers(s => s.map(v => (v.server?.id === serverId ? server! : v)));
+		} catch (err) {
+			return $notifications.addNotification({
+				type: NotificationType.ERROR,
+				title: "Ошибка",
+				message: "Не удалось получить список сервисов",
+			});
+		}
+	};
+
+	const getServerExpandPersistentKey = (serverId: number) => {
+		return `server-expand:${serverId}`;
+	};
+
+	const getServiceExpandPersistentKey = (serverId: number, serviceName: string) => {
+		return `service-expand:${serverId}:${serviceName}`;
+	};
+
+	const getServerBusyPersistentKey = (serverId: number) => {
+		return `server-busy:${serverId}`;
+	};
+
+	const getServiceBusyPersistentKey = (serverId: number, serviceName: string) => {
+		return `service-busy:${serverId}:${serviceName}`;
 	};
 
 	return {
 		servers,
 		refreshServers,
+		refreshServerById,
+		getServerExpandPersistentKey,
+		getServiceExpandPersistentKey,
+		getServerBusyPersistentKey,
+		getServiceBusyPersistentKey,
 	};
 };
 

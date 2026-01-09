@@ -4,7 +4,6 @@ go 1.25
 
 require (
 	github.com/jhump/protoreflect v1.17.0
-	github.com/k0kubun/pp v3.0.1+incompatible
 	github.com/wailsapp/wails/v3 v3.0.0-alpha.55
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.10
@@ -36,7 +35,6 @@ require (
 	github.com/jchv/go-winloader v0.0.0-20210711035445-715c2860da7e // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
-	github.com/k0kubun/colorstring v0.0.0-20150214042306-9440f1994b88 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/leaanthony/go-ansi-parser v1.6.1 // indirect
 	github.com/leaanthony/u v1.1.1 // indirect

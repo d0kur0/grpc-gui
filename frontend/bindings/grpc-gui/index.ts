@@ -11,5 +11,6 @@ export {
 } from "./models.js";
 
 export type {
+    ServerWithReflection,
     ValidationResult
 } from "./models.js";

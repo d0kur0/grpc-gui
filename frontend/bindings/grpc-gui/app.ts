@@ -36,8 +36,16 @@ export function GetServerReflection(id: number): $CancellablePromise<models$0.Se
     return $Call.ByID(3482647849, id);
 }
 
+export function GetServerWithReflection(id: number): $CancellablePromise<$models.ServerWithReflection | null> {
+    return $Call.ByID(241357665, id);
+}
+
 export function GetServers(): $CancellablePromise<models$0.Server[] | null> {
     return $Call.ByID(4270553301);
+}
+
+export function GetServersWithReflection(): $CancellablePromise<$models.ServerWithReflection[] | null> {
+    return $Call.ByID(3123129712);
 }
 
 export function UpdateServer(id: number, name: string, address: string, useTLS: boolean, insecure: boolean): $CancellablePromise<void> {

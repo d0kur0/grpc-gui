@@ -2,6 +2,7 @@ package grpcreflect
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"testing"
 	"time"
@@ -1028,5 +1029,182 @@ func TestFieldNumbers(t *testing.T) {
 		if field.Name != name {
 			t.Errorf("field number %d expected name %s, got %s", num, name, field.Name)
 		}
+	}
+}
+
+func TestRequestExampleAndSchema(t *testing.T) {
+	addr, cleanup := startTestServer(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	reflector, err := NewReflector(ctx, addr, &utils.GRPCConnectOptions{UseTLS: false})
+	if err != nil {
+		t.Fatalf("NewReflector failed: %v", err)
+	}
+	defer reflector.Close()
+
+	servicesInfo, err := reflector.GetAllServicesInfo()
+	if err != nil {
+		t.Fatalf("GetAllServicesInfo failed: %v", err)
+	}
+
+	var complexCallMethod *MethodInfo
+	for i := range servicesInfo.Services {
+		for j := range servicesInfo.Services[i].Methods {
+			if servicesInfo.Services[i].Methods[j].Name == "ComplexCall" {
+				complexCallMethod = &servicesInfo.Services[i].Methods[j]
+				break
+			}
+		}
+	}
+
+	if complexCallMethod == nil {
+		t.Fatal("ComplexCall method not found")
+	}
+
+	if len(complexCallMethod.RequestExample) == 0 {
+		t.Error("RequestExample should not be empty")
+	}
+
+	if len(complexCallMethod.RequestSchema) == 0 {
+		t.Error("RequestSchema should not be empty")
+	}
+
+	if len(complexCallMethod.ResponseExample) == 0 {
+		t.Error("ResponseExample should not be empty")
+	}
+
+	var requestExample map[string]interface{}
+	if err := json.Unmarshal(complexCallMethod.RequestExample, &requestExample); err != nil {
+		t.Fatalf("Failed to unmarshal RequestExample: %v", err)
+	}
+
+	if _, ok := requestExample["status"]; !ok {
+		t.Error("RequestExample should contain status field")
+	}
+
+	var requestSchema map[string]interface{}
+	if err := json.Unmarshal(complexCallMethod.RequestSchema, &requestSchema); err != nil {
+		t.Fatalf("Failed to unmarshal RequestSchema: %v", err)
+	}
+
+	statusField, ok := requestSchema["status"].(map[string]interface{})
+	if !ok {
+		t.Fatal("status field should be an object in RequestSchema")
+	}
+
+	if isEnum, ok := statusField["isEnum"].(bool); !ok || !isEnum {
+		t.Error("status field should have isEnum: true")
+	}
+
+	enumValues, ok := statusField["enumValues"].([]interface{})
+	if !ok {
+		t.Fatal("status field should have enumValues array")
+	}
+
+	expectedEnumValues := []string{"UNKNOWN", "PENDING", "ACTIVE", "INACTIVE", "DELETED"}
+	if len(enumValues) != len(expectedEnumValues) {
+		t.Errorf("expected %d enum values, got %d", len(expectedEnumValues), len(enumValues))
+	}
+
+	for i, expected := range expectedEnumValues {
+		if i >= len(enumValues) {
+			break
+		}
+		if enumValues[i] != expected {
+			t.Errorf("enum value at index %d expected %s, got %v", i, expected, enumValues[i])
+		}
+	}
+}
+
+func TestOneofGroup(t *testing.T) {
+	addr, cleanup := startTestServer(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	reflector, err := NewReflector(ctx, addr, &utils.GRPCConnectOptions{UseTLS: false})
+	if err != nil {
+		t.Fatalf("NewReflector failed: %v", err)
+	}
+	defer reflector.Close()
+
+	servicesInfo, err := reflector.GetAllServicesInfo()
+	if err != nil {
+		t.Fatalf("GetAllServicesInfo failed: %v", err)
+	}
+
+	var complexCallMethod *MethodInfo
+	for i := range servicesInfo.Services {
+		for j := range servicesInfo.Services[i].Methods {
+			if servicesInfo.Services[i].Methods[j].Name == "ComplexCall" {
+				complexCallMethod = &servicesInfo.Services[i].Methods[j]
+				break
+			}
+		}
+	}
+
+	if complexCallMethod == nil {
+		t.Fatal("ComplexCall method not found")
+	}
+
+	req := complexCallMethod.Request
+	fieldMap := make(map[string]*FieldInfo)
+	for i := range req.Fields {
+		fieldMap[req.Fields[i].Name] = &req.Fields[i]
+	}
+
+	oneofFields := []string{"text", "number", "user_payload"}
+	for _, fieldName := range oneofFields {
+		field, ok := fieldMap[fieldName]
+		if !ok {
+			t.Errorf("oneof field %s not found", fieldName)
+			continue
+		}
+
+		if field.OneofGroup != "payload" {
+			t.Errorf("field %s expected oneofGroup 'payload', got '%s'", fieldName, field.OneofGroup)
+		}
+	}
+
+	var requestSchema map[string]interface{}
+	if err := json.Unmarshal(complexCallMethod.RequestSchema, &requestSchema); err != nil {
+		t.Fatalf("Failed to unmarshal RequestSchema: %v", err)
+	}
+
+	for _, fieldName := range oneofFields {
+		fieldSchema, ok := requestSchema[fieldName].(map[string]interface{})
+		if !ok {
+			t.Errorf("field %s should be an object in RequestSchema", fieldName)
+			continue
+		}
+
+		oneofGroup, ok := fieldSchema["oneofGroup"].(string)
+		if !ok || oneofGroup != "payload" {
+			t.Errorf("field %s expected oneofGroup 'payload' in schema, got %v", fieldName, fieldSchema["oneofGroup"])
+		}
+	}
+}
+
+func TestIsReflectionService(t *testing.T) {
+	tests := []struct {
+		name     string
+		expected bool
+	}{
+		{"grpc.reflection.v1.ServerReflection", true},
+		{"grpc.reflection.v1alpha.ServerReflection", true},
+		{"grpc.reflection.v1beta.ServerReflection", true},
+		{"testserver.TestService", false},
+		{"testserver.AnotherService", false},
+		{"some.other.Service", false},
+		{"", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := IsReflectionService(tt.name)
+			if result != tt.expected {
+				t.Errorf("IsReflectionService(%q) = %v, expected %v", tt.name, result, tt.expected)
+			}
+		})
 	}
 }

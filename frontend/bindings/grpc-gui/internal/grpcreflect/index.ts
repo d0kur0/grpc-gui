@@ -4,5 +4,8 @@
 export type {
     EnumValueInfo,
     FieldInfo,
-    MessageInfo
+    MessageInfo,
+    MethodInfo,
+    ServiceInfo,
+    ServicesInfo
 } from "./models.js";

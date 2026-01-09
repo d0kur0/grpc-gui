@@ -6,8 +6,6 @@ import (
 	"grpc-gui/internal/utils"
 	"log"
 	"time"
-
-	"github.com/k0kubun/pp"
 )
 
 func main() {
@@ -27,17 +25,18 @@ func main() {
 
 	for _, s := range servicesInfo.Services {
 		for _, m := range s.Methods {
-
-			if m.Name != "GetUser" {
+			if m.Name != "ComplexCall" {
 				continue
 			}
 
-			j := grpcreflect.GenerateJSONValue(m.Response, make(map[string]bool))
-			pp.Println(j)
+			log.Println("=== Request Example ===")
+			log.Println(string(m.RequestExample))
 
-			a, _ := grpcreflect.GenerateJSONExample(m.Response)
+			log.Println("\n=== Request Schema (with enum values and oneof) ===")
+			log.Println(string(m.RequestSchema))
 
-			log.Println(string(a))
+			log.Println("\n=== Response Example ===")
+			log.Println(string(m.ResponseExample))
 		}
 	}
 

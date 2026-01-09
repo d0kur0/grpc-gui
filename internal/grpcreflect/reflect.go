@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"grpc-gui/internal/utils"
+	"strings"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
@@ -33,6 +34,7 @@ type FieldInfo struct {
 	IsEnum     bool            `json:"isEnum"`
 	MapKey     string          `json:"mapKey"`
 	MapValue   string          `json:"mapValue"`
+	OneofGroup string          `json:"oneofGroup,omitempty"`
 	Message    *MessageInfo    `json:"message,omitempty"`
 	EnumValues []EnumValueInfo `json:"enumValues,omitempty"`
 }
@@ -43,11 +45,14 @@ type MessageInfo struct {
 }
 
 type MethodInfo struct {
-	Name         string       `json:"name"`
-	RequestType  string       `json:"requestType"`
-	ResponseType string       `json:"responseType"`
-	Request      *MessageInfo `json:"request,omitempty"`
-	Response     *MessageInfo `json:"response,omitempty"`
+	Name            string          `json:"name"`
+	RequestType     string          `json:"requestType"`
+	ResponseType    string          `json:"responseType"`
+	Request         *MessageInfo    `json:"request,omitempty"`
+	Response        *MessageInfo    `json:"response,omitempty"`
+	RequestExample  json.RawMessage `json:"requestExample,omitempty"`
+	ResponseExample json.RawMessage `json:"responseExample,omitempty"`
+	RequestSchema   json.RawMessage `json:"requestSchema,omitempty"`
 }
 
 type ServiceInfo struct {
@@ -82,6 +87,10 @@ func (r *Reflector) GetServiceDescriptor(serviceName string) (*desc.ServiceDescr
 	return r.client.ResolveService(serviceName)
 }
 
+func IsReflectionService(serviceName string) bool {
+	return strings.HasPrefix(serviceName, "grpc.reflection.") && strings.HasSuffix(serviceName, ".ServerReflection")
+}
+
 func (r *Reflector) GetAllServicesInfo() (*ServicesInfo, error) {
 	serviceNames, err := r.client.ListServices()
 	if err != nil {
@@ -109,12 +118,19 @@ func (r *Reflector) GetAllServicesInfo() (*ServicesInfo, error) {
 			requestMsg := extractMessageInfo(method.Input())
 			responseMsg := extractMessageInfo(method.Output())
 
+			requestExample, _ := GenerateJSONExample(requestMsg)
+			responseExample, _ := GenerateJSONExample(responseMsg)
+			requestSchema, _ := GenerateRequestSchema(requestMsg)
+
 			serviceInfo.Methods = append(serviceInfo.Methods, MethodInfo{
-				Name:         string(method.Name()),
-				RequestType:  string(method.Input().FullName()),
-				ResponseType: string(method.Output().FullName()),
-				Request:      requestMsg,
-				Response:     responseMsg,
+				Name:            string(method.Name()),
+				RequestType:     string(method.Input().FullName()),
+				ResponseType:    string(method.Output().FullName()),
+				Request:         requestMsg,
+				Response:        responseMsg,
+				RequestExample:  json.RawMessage(requestExample),
+				ResponseExample: json.RawMessage(responseExample),
+				RequestSchema:   json.RawMessage(requestSchema),
 			})
 		}
 
@@ -201,6 +217,11 @@ func extractMessageInfoRecursive(msgDesc protoreflect.MessageDescriptor, visited
 			}
 		}
 
+		oneofGroup := ""
+		if oneof := field.ContainingOneof(); oneof != nil {
+			oneofGroup = string(oneof.Name())
+		}
+
 		fieldInfo := FieldInfo{
 			Name:       string(field.Name()),
 			Type:       fieldType,
@@ -212,6 +233,7 @@ func extractMessageInfoRecursive(msgDesc protoreflect.MessageDescriptor, visited
 			IsEnum:     isEnum,
 			MapKey:     mapKey,
 			MapValue:   mapValue,
+			OneofGroup: oneofGroup,
 			Message:    nestedMsg,
 			EnumValues: enumValues,
 		}
@@ -346,4 +368,67 @@ func getDefaultValueForField(field FieldInfo) interface{} {
 		return field.EnumValues[0].Name
 	}
 	return getDefaultValueForType(field.Type)
+}
+
+func GenerateRequestSchema(msg *MessageInfo) ([]byte, error) {
+	if msg == nil {
+		return []byte("{}"), nil
+	}
+
+	schema := GenerateSchemaValue(msg, make(map[string]bool))
+	return json.MarshalIndent(schema, "", "  ")
+}
+
+func GenerateSchemaValue(msg *MessageInfo, visited map[string]bool) map[string]interface{} {
+	if msg == nil {
+		return nil
+	}
+
+	fullName := msg.Name
+	if visited[fullName] {
+		return map[string]interface{}{}
+	}
+	visited[fullName] = true
+
+	result := make(map[string]interface{})
+
+	for _, field := range msg.Fields {
+		fieldSchema := make(map[string]interface{})
+		fieldSchema["type"] = field.Type
+		fieldSchema["value"] = generateFieldValue(field, visited)
+
+		if field.Repeated {
+			fieldSchema["repeated"] = true
+		}
+		if field.Optional {
+			fieldSchema["optional"] = true
+		}
+		if field.Required {
+			fieldSchema["required"] = true
+		}
+		if field.IsMap {
+			fieldSchema["isMap"] = true
+			fieldSchema["mapKey"] = field.MapKey
+			fieldSchema["mapValue"] = field.MapValue
+		}
+		if len(field.EnumValues) > 0 {
+			fieldSchema["isEnum"] = true
+			enumValues := make([]string, 0, len(field.EnumValues))
+			for _, ev := range field.EnumValues {
+				enumValues = append(enumValues, ev.Name)
+			}
+			fieldSchema["enumValues"] = enumValues
+		}
+		if field.OneofGroup != "" {
+			fieldSchema["oneofGroup"] = field.OneofGroup
+		}
+		if field.Message != nil {
+			fieldSchema["message"] = GenerateSchemaValue(field.Message, visited)
+		}
+
+		result[field.Name] = fieldSchema
+	}
+
+	delete(visited, fullName)
+	return result
 }

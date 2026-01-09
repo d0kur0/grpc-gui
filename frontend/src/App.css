@@ -39,3 +39,54 @@
 @plugin "daisyui" {
 	themes: light --default, cdark --prefersdark;
 }
+
+*::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+	-webkit-appearance: none;
+}
+
+*::-webkit-scrollbar-button {
+	display: none !important;
+	width: 0 !important;
+	height: 0 !important;
+	-webkit-appearance: none;
+}
+
+*::-webkit-scrollbar-button:start:decrement,
+*::-webkit-scrollbar-button:end:increment {
+	display: none !important;
+	width: 0 !important;
+	height: 0 !important;
+}
+
+*::-webkit-scrollbar-corner {
+	display: none !important;
+	background: transparent !important;
+}
+
+*::-webkit-scrollbar-track {
+	background-color: transparent;
+	border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb {
+	background-color: color-mix(in oklch, var(--color-base-content) 20%, transparent);
+	border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+	background-color: color-mix(in oklch, var(--color-base-content) 30%, transparent);
+}
+
+* {
+	scrollbar-gutter: stable;
+}
+
+@supports (scrollbar-width: thin) {
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: color-mix(in oklch, var(--color-base-content) 20%, transparent) transparent;
+		scrollbar-gutter: stable;
+	}
+}

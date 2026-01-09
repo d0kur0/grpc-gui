@@ -43,6 +43,79 @@ func (a *App) GetServers() ([]models.Server, error) {
 	return a.storage.GetServers()
 }
 
+type ServerWithReflection struct {
+	Server     *models.Server            `json:"server"`
+	Reflection *grpcreflect.ServicesInfo `json:"reflection"`
+	Error      string                    `json:"error,omitempty"`
+}
+
+func (a *App) getServerReflection(ctx context.Context, server models.Server) ServerWithReflection {
+	result := ServerWithReflection{
+		Server:     &server,
+		Reflection: &grpcreflect.ServicesInfo{Services: []grpcreflect.ServiceInfo{}},
+	}
+
+	reflector, err := grpcreflect.NewReflector(ctx, server.Address, &utils.GRPCConnectOptions{UseTLS: server.OptUseTLS, Insecure: server.OptInsecure})
+	if err != nil {
+		result.Error = utils.FormatConnectionError(err, server.Address, server.OptUseTLS, server.OptInsecure)
+		return result
+	}
+	defer reflector.Close()
+
+	services, err := reflector.GetAllServicesInfo()
+	if err != nil {
+		if utils.IsConnectionError(err) {
+			result.Error = utils.FormatConnectionError(err, server.Address, server.OptUseTLS, server.OptInsecure)
+		} else {
+			result.Error = utils.FormatReflectionError(err)
+		}
+		return result
+	}
+
+	filteredServices := &grpcreflect.ServicesInfo{
+		Services: []grpcreflect.ServiceInfo{},
+	}
+
+	for _, service := range services.Services {
+		if !grpcreflect.IsReflectionService(service.Name) {
+			filteredServices.Services = append(filteredServices.Services, service)
+		}
+	}
+
+	result.Reflection = filteredServices
+	return result
+}
+
+func (a *App) GetServersWithReflection() ([]ServerWithReflection, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	servers, err := a.storage.GetServers()
+	if err != nil {
+		return nil, err
+	}
+
+	var serversWithReflection []ServerWithReflection
+	for _, server := range servers {
+		serversWithReflection = append(serversWithReflection, a.getServerReflection(ctx, server))
+	}
+
+	return serversWithReflection, nil
+}
+
+func (a *App) GetServerWithReflection(id uint) (*ServerWithReflection, error) {
+	server, err := a.storage.GetServer(id)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result := a.getServerReflection(ctx, *server)
+	return &result, nil
+}
+
 func (a *App) DeleteServer(id uint) error {
 	return a.storage.DeleteServer(id)
 }
