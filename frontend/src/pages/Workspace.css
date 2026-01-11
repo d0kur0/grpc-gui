@@ -17,5 +17,4 @@
 
 .workspace__body {
 	grid-area: body;
-	@apply px-6 py-4;
 }

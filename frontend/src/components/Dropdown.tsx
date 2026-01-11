@@ -12,7 +12,7 @@ export const DropDownContainer = (props: DropDownContainerProps) => {
 	return (
 		<div class="">
 			<button
-				class="cursor-pointer flex gap-0.5 items-center text-base-content/70 py-1 transition-all duration-300 hover:text-base-content"
+				class="cursor-pointer flex gap-0.5 items-center text-base-content/70 py-1 w-full transition-all duration-300 hover:text-base-content"
 				onClick={() => props.onOpenChange(!props.open)}>
 				<TiChevronRight class="text-xs" classList={{ "rotate-90": props.open }} />
 				<span class="text-sm">{props.title}</span>

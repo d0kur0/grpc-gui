@@ -1,0 +1,11 @@
+.tabs {
+	--title-height: 30px;
+}
+
+.tabs-list {
+	height: var(--title-height);
+}
+
+.tabs-content {
+	height: calc(100% - var(--title-height));
+}

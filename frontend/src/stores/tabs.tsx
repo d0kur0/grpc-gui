@@ -4,14 +4,21 @@ export type Tab = {
 	id: string;
 	name: string;
 	content: JSX.Element;
+	isActive: boolean;
 	temporary: boolean;
 };
 
 const createTabsStore = () => {
 	const [tabs, setTabs] = createSignal<Tab[]>([]);
 
-	const addTab = (tab: Omit<Tab, "id">) => {
-		setTabs(prev => [...prev, { ...tab, id: crypto.randomUUID() }]);
+	const addTab = (tab: Tab) => {
+		setTabs(prev => {
+			const hasSameTab = prev.find(t => t.id === tab.id);
+			if (hasSameTab) {
+				return prev.map(t => (t.id === tab.id ? { ...t, ...tab, isActive: true } : t));
+			}
+			return [...prev, tab];
+		});
 	};
 
 	const removeTab = (id: string) => {

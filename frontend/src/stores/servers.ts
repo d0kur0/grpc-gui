@@ -53,9 +53,14 @@ const createServersStore = () => {
 		return `service-busy:${serverId}:${serviceName}`;
 	};
 
+	const getTabIdForMethod = (serverId: number, serviceName: string, methodName: string) => {
+		return `tab-${serverId}-${serviceName}-${methodName}`;
+	};
+
 	return {
 		servers,
 		refreshServers,
+		getTabIdForMethod,
 		refreshServerById,
 		getServerExpandPersistentKey,
 		getServiceExpandPersistentKey,
