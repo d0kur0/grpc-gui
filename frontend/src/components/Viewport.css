@@ -9,7 +9,7 @@
 
 	user-select: none;
 	height: var(--controls-height);
-	@apply bg-base-200 px-6 pr-4 flex items-center border-b-2 border-base-content/10;
+	@apply bg-base-200 px-6 pr-3 flex items-center border-b-2 border-base-content/10;
 }
 
 .viewport__title {

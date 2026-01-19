@@ -1,20 +1,19 @@
 @reference "../App.css";
 
 .workspace {
-	display: grid;
-	grid-template-columns: 360px 1fr;
-	grid-template-rows: 1fr;
-	grid-template-areas: "menu body";
 	height: 100%;
+	display: flex;
 }
 
 .workspace__menu {
-	@apply border-r-2 border-base-content/10 px-6 pr-3 py-4 bg-base-200;
-	grid-area: menu;
-	height: 100%;
-	overflow: auto;
+	@apply px-6 pr-3 py-4 bg-base-200;
+	overflow-y: scroll; 
+	flex-basis: 320px;
 }
 
 .workspace__body {
-	grid-area: body;
+	@apply border-l-2 border-base-content/10;
+	height: 100%;
+	min-width: 0;
+	flex: 1;
 }

@@ -1,9 +1,8 @@
 @import "tailwindcss";
-@plugin "daisyui";
 
 @plugin "daisyui/theme" {
 	name: "cdark";
-	default: false;
+	default: false; 
 	prefersdark: true;
 	color-scheme: "dark";
 	--color-base-100: oklch(21% 0.006 285.885);
@@ -19,7 +18,7 @@
 	--color-neutral: oklch(14% 0.005 285.823);
 	--color-neutral-content: oklch(98% 0 0);
 	--color-info: oklch(74% 0.16 232.661);
-	--color-info-content: oklch(29% 0.066 243.157);
+	--color-info-content: oklch(29% 0.066 243.157); 
 	--color-success: oklch(77% 0.152 181.912);
 	--color-success-content: oklch(27% 0.046 192.524);
 	--color-warning: oklch(82% 0.189 84.429);
@@ -30,63 +29,51 @@
 	--radius-field: 0.5rem;
 	--radius-box: 1rem;
 	--size-selector: 0.1875rem;
-	--size-field: 0.21875rem;
+	--size-field: 0.21875rem; 
 	--border: 0.5px;
 	--depth: 1;
 	--noise: 1;
+	--color-primary: oklch(75.461% 0.183 346.812);
+  --color-primary-content: oklch(15.092% 0.036 346.812);
+  --color-secondary: oklch(74.202% 0.148 301.883);
+  --color-secondary-content: oklch(14.84% 0.029 301.883);
+  --color-accent: oklch(83.392% 0.124 66.558);
+  --color-accent-content: oklch(16.678% 0.024 66.558);
+
 }
 
 @plugin "daisyui" {
 	themes: light --default, cdark --prefersdark;
+	exclude: scrollbar, rootscrollgutter;
 }
 
-*::-webkit-scrollbar {
-	width: 10px;
-	height: 10px;
-	-webkit-appearance: none;
-}
+.scrollbar {
+	scrollbar-gutter: stable; 
+	
+} 
 
-*::-webkit-scrollbar-button {
-	display: none !important;
-	width: 0 !important;
-	height: 0 !important;
-	-webkit-appearance: none;
-}
-
-*::-webkit-scrollbar-button:start:decrement,
-*::-webkit-scrollbar-button:end:increment {
-	display: none !important;
-	width: 0 !important;
-	height: 0 !important;
-}
-
-*::-webkit-scrollbar-corner {
-	display: none !important;
-	background: transparent !important;
-}
-
-*::-webkit-scrollbar-track {
+.scrollbar::-webkit-scrollbar {
+	width: 5px;
+	height: 5px; 
 	background-color: transparent;
-	border-radius: 3px;
 }
 
-*::-webkit-scrollbar-thumb {
-	background-color: color-mix(in oklch, var(--color-base-content) 20%, transparent);
-	border-radius: 3px;
+.scrollbar::-webkit-scrollbar-button {
+	display: none;
+	width: 0;
+	height: 0;
 }
 
-*::-webkit-scrollbar-thumb:hover {
-	background-color: color-mix(in oklch, var(--color-base-content) 30%, transparent);
+.scrollbar::-webkit-scrollbar-thumb {
+	background-color: rgba(0, 0, 0, 0.01);
+	transition: background-color .2s ease;
+	border-radius: 19px; 
 }
 
-* {
-	scrollbar-gutter: stable;
+.scrollbar:hover::-webkit-scrollbar-thumb {
+	@apply bg-base-300;
 }
 
-@supports (scrollbar-width: thin) {
-	* {
-		scrollbar-width: thin;
-		scrollbar-color: color-mix(in oklch, var(--color-base-content) 20%, transparent) transparent;
-		scrollbar-gutter: stable;
-	}
+.scrollbar:hover {
+  -webkit-mask-position: left top;
 }

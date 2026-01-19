@@ -7,10 +7,10 @@ export const Workspace = () => {
 	return (
 		<Viewport subtitle="workspace">
 			<div class="workspace">
-				<div class="workspace__menu">
+				<div class="workspace__menu scrollbar">
 					<WorkspaceServicesMenu />
 				</div>
-
+ 
 				<div class="workspace__body">
 					<Tabs />
 				</div>

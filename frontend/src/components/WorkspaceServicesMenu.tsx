@@ -9,7 +9,7 @@ import { DropDownContainer } from "../components/Dropdown";
 import { EmptyFallback } from "../components/EmptyFallback";
 import { IoChevronCollapse, IoExpand } from "solid-icons/io";
 import { FaSolidHashtag } from "solid-icons/fa";
-import { $tabs } from "../stores/tabs";
+import { $tabs, TabComponent } from "../stores/tabs";
 import { SendRequest } from "./SendRequest";
 import { ServerWithReflection } from "../../bindings/grpc-gui";
 
@@ -41,8 +41,13 @@ export const WorkspaceServicesMenu = () => {
 	const handleOpenSendRequest = (server: ServerWithReflection, service: string, methodName: string) => {
 		$tabs.addTab({
 			id: getTabIdForMethod(server.server?.id!, service, methodName),
-			name: `${server.server?.name} - ${service} - ${methodName}`,
-			content: <SendRequest serverId={server.server?.id!} serviceName={service} methodName={methodName} />,
+			name: `${service} ${methodName}`,
+			component: TabComponent.REQUEST,
+			componentProps: {
+				serverId: server.server?.id!,
+				serviceName: service,
+				methodName: methodName,
+			},
 			isActive: true,
 			temporary: true,
 		});

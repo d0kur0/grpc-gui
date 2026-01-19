@@ -1,11 +1,51 @@
-.tabs {
-	--title-height: 30px;
+@reference "../App.css";
+
+.app-tabs {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
 }
 
-.tabs-list {
-	height: var(--title-height);
+.app-tabs-list {
+	max-width: 100%;
+	overflow-x: scroll;
+	overflow-y: hidden;
+	@apply flex items-center flex-nowrap border-b-2 border-base-content/10 pt-1;
 }
 
-.tabs-content {
+.app-tab {
+	white-space: nowrap;
+	cursor: pointer;
+	@apply px-2 py-1 text-sm text-base-content/50 flex items-center gap-1 border-b-2 border-transparent;
+	transition: 0.2s ease-in-out;
+}
+
+.app-tab-active {
+	@apply text-base-content/90 border-secondary/90;
+}
+
+.app-tab-name {
+	@apply truncate;
+}
+
+.app-tab-close {
+	opacity: 0;
+	cursor: pointer;
+	line-height: 0;
+}
+
+.app-tab-close:hover {
+	@apply bg-secondary text-secondary-content rounded-sm;
+}
+
+.app-tab:hover {
+	@apply text-base-content/90;
+}
+
+.app-tab:hover .app-tab-close {
+	opacity: 1;
+}
+
+.app-tab-component {
 	height: calc(100% - var(--title-height));
 }
