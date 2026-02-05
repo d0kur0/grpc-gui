@@ -43,34 +43,33 @@
 }
 
 @plugin "daisyui" {
-	themes: light --default, cdark --prefersdark;
+	themes: cdark;
 	exclude: scrollbar, rootscrollgutter;
 }
 
-.scrollbar {
+.scrollbar, .cm-scroller {
 	scrollbar-gutter: stable; 
-	
 } 
 
-.scrollbar::-webkit-scrollbar {
+.scrollbar::-webkit-scrollbar, .cm-scroller::-webkit-scrollbar {
 	width: 5px;
 	height: 5px; 
 	background-color: transparent;
 }
 
-.scrollbar::-webkit-scrollbar-button {
+.scrollbar::-webkit-scrollbar-button, .cm-scroller::-webkit-scrollbar-button {
 	display: none;
 	width: 0;
 	height: 0;
 }
 
-.scrollbar::-webkit-scrollbar-thumb {
+.scrollbar::-webkit-scrollbar-thumb, .cm-scroller::-webkit-scrollbar-thumb {
 	background-color: rgba(0, 0, 0, 0.01);
 	transition: background-color .2s ease;
 	border-radius: 19px; 
 }
 
-.scrollbar:hover::-webkit-scrollbar-thumb {
+.scrollbar:hover::-webkit-scrollbar-thumb, .cm-scroller:hover::-webkit-scrollbar-thumb {
 	@apply bg-base-300;
 }
 

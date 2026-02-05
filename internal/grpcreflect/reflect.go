@@ -6,11 +6,15 @@ import (
 	"fmt"
 	"grpc-gui/internal/utils"
 	"strings"
+	"time"
 
 	"github.com/jhump/protoreflect/desc"
 	"github.com/jhump/protoreflect/grpcreflect"
 	"google.golang.org/grpc"
+	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
 )
 
 type Reflector struct {
@@ -24,19 +28,21 @@ type EnumValueInfo struct {
 }
 
 type FieldInfo struct {
-	Name       string          `json:"name"`
-	Type       string          `json:"type"`
-	Number     int32           `json:"number"`
-	Repeated   bool            `json:"repeated"`
-	Optional   bool            `json:"optional"`
-	Required   bool            `json:"required"`
-	IsMap      bool            `json:"isMap"`
-	IsEnum     bool            `json:"isEnum"`
-	MapKey     string          `json:"mapKey"`
-	MapValue   string          `json:"mapValue"`
-	OneofGroup string          `json:"oneofGroup,omitempty"`
-	Message    *MessageInfo    `json:"message,omitempty"`
-	EnumValues []EnumValueInfo `json:"enumValues,omitempty"`
+ 	Name          string          `json:"name"`
+	Type          string          `json:"type"`
+	Number        int32           `json:"number"`
+	Repeated      bool            `json:"repeated"`
+	Optional      bool            `json:"optional"`
+	Required      bool            `json:"required"`
+	IsMap         bool            `json:"isMap"`
+	IsEnum        bool            `json:"isEnum"`
+	IsWellKnown   bool            `json:"isWellKnown"`
+	WellKnownType string          `json:"wellKnownType,omitempty"`
+	MapKey        string          `json:"mapKey"`
+	MapValue      string          `json:"mapValue"`
+	OneofGroup    string          `json:"oneofGroup,omitempty"`
+	Message       *MessageInfo    `json:"message,omitempty"`
+	EnumValues    []EnumValueInfo `json:"enumValues,omitempty"`
 }
 
 type MessageInfo struct {
@@ -45,14 +51,15 @@ type MessageInfo struct {
 }
 
 type MethodInfo struct {
-	Name            string          `json:"name"`
-	RequestType     string          `json:"requestType"`
-	ResponseType    string          `json:"responseType"`
-	Request         *MessageInfo    `json:"request,omitempty"`
-	Response        *MessageInfo    `json:"response,omitempty"`
-	RequestExample  json.RawMessage `json:"requestExample,omitempty"`
-	ResponseExample json.RawMessage `json:"responseExample,omitempty"`
-	RequestSchema   json.RawMessage `json:"requestSchema,omitempty"`
+	Name                 string          `json:"name"`
+	RequestType          string          `json:"requestType"`
+	ResponseType         string          `json:"responseType"`
+	Request              *MessageInfo    `json:"request,omitempty"`
+	Response             *MessageInfo    `json:"response,omitempty"`
+	RequestExample       json.RawMessage `json:"requestExample,omitempty"`
+	RequestExampleString string          `json:"requestExampleString,omitempty"`
+	ResponseExample      json.RawMessage `json:"responseExample,omitempty"`
+	RequestSchema        json.RawMessage `json:"requestSchema,omitempty"`
 }
 
 type ServiceInfo struct {
@@ -87,8 +94,230 @@ func (r *Reflector) GetServiceDescriptor(serviceName string) (*desc.ServiceDescr
 	return r.client.ResolveService(serviceName)
 }
 
-func IsReflectionService(serviceName string) bool {
-	return strings.HasPrefix(serviceName, "grpc.reflection.") && strings.HasSuffix(serviceName, ".ServerReflection")
+func IsSystemService(serviceName string) bool {
+	return (strings.HasPrefix(serviceName, "grpc.reflection.") && strings.HasSuffix(serviceName, ".ServerReflection")) ||
+		strings.HasPrefix(serviceName, "grpc.health.")
+}
+
+func (r *Reflector) getServiceMethodsLowLevel(ctx context.Context, serviceName string) ([]MethodInfo, error) {
+	refClient := reflectpb.NewServerReflectionClient(r.conn)
+	stream, err := refClient.ServerReflectionInfo(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create stream: %w", err)
+	}
+	defer stream.CloseSend()
+
+	err = stream.Send(&reflectpb.ServerReflectionRequest{
+		MessageRequest: &reflectpb.ServerReflectionRequest_FileContainingSymbol{
+			FileContainingSymbol: serviceName,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+
+	resp, err := stream.Recv()
+	if err != nil {
+		return nil, fmt.Errorf("failed to receive response: %w", err)
+	}
+
+	fdResp := resp.GetFileDescriptorResponse()
+	if fdResp == nil {
+		return nil, fmt.Errorf("no file descriptor response")
+	}
+
+	if len(fdResp.FileDescriptorProto) == 0 {
+		return nil, fmt.Errorf("no file descriptors returned")
+	}
+
+	allFiles := make(map[string]*descriptorpb.FileDescriptorProto)
+	for _, fdBytes := range fdResp.FileDescriptorProto {
+		fdProto := &descriptorpb.FileDescriptorProto{}
+		err = proto.Unmarshal(fdBytes, fdProto)
+		if err != nil {
+			continue
+		}
+		allFiles[fdProto.GetName()] = fdProto
+	}
+
+	mainFd := &descriptorpb.FileDescriptorProto{}
+	err = proto.Unmarshal(fdResp.FileDescriptorProto[0], mainFd)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal descriptor: %w", err)
+	}
+
+	var methods []MethodInfo
+	for _, svc := range mainFd.GetService() {
+		for _, method := range svc.GetMethod() {
+			methodInfo := MethodInfo{
+				Name:         method.GetName(),
+				RequestType:  method.GetInputType(),
+				ResponseType: method.GetOutputType(),
+			}
+
+			requestMsg := r.findAndBuildMessage(method.GetInputType(), allFiles)
+			responseMsg := r.findAndBuildMessage(method.GetOutputType(), allFiles)
+
+			if requestMsg != nil {
+				methodInfo.Request = requestMsg
+				requestExample, _ := GenerateJSONExample(requestMsg)
+				methodInfo.RequestExample = json.RawMessage(requestExample)
+				methodInfo.RequestExampleString = GenerateJSONExampleWithComments(requestMsg)
+				requestSchema, _ := GenerateRequestSchema(requestMsg)
+				methodInfo.RequestSchema = json.RawMessage(requestSchema)
+			}
+
+			if responseMsg != nil {
+				methodInfo.Response = responseMsg
+				responseExample, _ := GenerateJSONExample(responseMsg)
+				methodInfo.ResponseExample = json.RawMessage(responseExample)
+			}
+
+			methods = append(methods, methodInfo)
+		}
+	}
+
+	return methods, nil
+}
+
+func (r *Reflector) findAndBuildMessage(typeName string, files map[string]*descriptorpb.FileDescriptorProto) *MessageInfo {
+	cleanName := strings.TrimPrefix(typeName, ".")
+
+	for _, fd := range files {
+		pkg := fd.GetPackage()
+		for _, msg := range fd.GetMessageType() {
+			fullName := pkg + "." + msg.GetName()
+			if fullName == cleanName {
+				return r.buildMessageFromProto(msg, fd, files)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *Reflector) findEnumValues(typeName string, files map[string]*descriptorpb.FileDescriptorProto) []EnumValueInfo {
+	cleanName := strings.TrimPrefix(typeName, ".")
+
+	for _, fd := range files {
+		pkg := fd.GetPackage()
+		for _, enum := range fd.GetEnumType() {
+			fullName := pkg + "." + enum.GetName()
+			if fullName == cleanName {
+				values := make([]EnumValueInfo, 0, len(enum.GetValue()))
+				for _, val := range enum.GetValue() {
+					values = append(values, EnumValueInfo{
+						Name:   val.GetName(),
+						Number: val.GetNumber(),
+					})
+				}
+				return values
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *Reflector) buildMessageFromProto(msgProto *descriptorpb.DescriptorProto, fd *descriptorpb.FileDescriptorProto, files map[string]*descriptorpb.FileDescriptorProto) *MessageInfo {
+	pkg := fd.GetPackage()
+	fullName := pkg + "." + msgProto.GetName()
+
+	info := &MessageInfo{
+		Name:   fullName,
+		Fields: []FieldInfo{},
+	}
+
+	for _, field := range msgProto.GetField() {
+		fieldInfo := FieldInfo{
+			Name:     field.GetName(),
+			Number:   field.GetNumber(),
+			Repeated: field.GetLabel() == descriptorpb.FieldDescriptorProto_LABEL_REPEATED,
+			Optional: field.GetLabel() == descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL,
+			Required: field.GetLabel() == descriptorpb.FieldDescriptorProto_LABEL_REQUIRED,
+		}
+
+		if field.OneofIndex != nil {
+			oneofDecl := msgProto.GetOneofDecl()[*field.OneofIndex]
+			fieldInfo.OneofGroup = oneofDecl.GetName()
+		}
+
+		fieldInfo.Type = r.getFieldType(field)
+
+		if field.GetType() == descriptorpb.FieldDescriptorProto_TYPE_MESSAGE && field.GetTypeName() != "" {
+			typeName := strings.TrimPrefix(field.GetTypeName(), ".")
+			isWellKnown, wellKnownType := isWellKnownType(typeName)
+			
+			if isWellKnown {
+				fieldInfo.IsWellKnown = true
+				fieldInfo.WellKnownType = wellKnownType
+			} else {
+				nestedMsg := r.findAndBuildMessage(field.GetTypeName(), files)
+				if nestedMsg != nil {
+					fieldInfo.Message = nestedMsg
+				}
+			}
+		}
+
+		if field.GetType() == descriptorpb.FieldDescriptorProto_TYPE_ENUM && field.GetTypeName() != "" {
+			fieldInfo.IsEnum = true
+			enumValues := r.findEnumValues(field.GetTypeName(), files)
+			if len(enumValues) > 0 {
+				fieldInfo.EnumValues = enumValues
+			}
+		}
+
+		info.Fields = append(info.Fields, fieldInfo)
+	}
+
+	return info
+}
+
+func (r *Reflector) getFieldType(field *descriptorpb.FieldDescriptorProto) string {
+	switch field.GetType() {
+	case descriptorpb.FieldDescriptorProto_TYPE_DOUBLE:
+		return "double"
+	case descriptorpb.FieldDescriptorProto_TYPE_FLOAT:
+		return "float"
+	case descriptorpb.FieldDescriptorProto_TYPE_INT64:
+		return "int64"
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT64:
+		return "uint64"
+	case descriptorpb.FieldDescriptorProto_TYPE_INT32:
+		return "int32"
+	case descriptorpb.FieldDescriptorProto_TYPE_FIXED64:
+		return "fixed64"
+	case descriptorpb.FieldDescriptorProto_TYPE_FIXED32:
+		return "fixed32"
+	case descriptorpb.FieldDescriptorProto_TYPE_BOOL:
+		return "bool"
+	case descriptorpb.FieldDescriptorProto_TYPE_STRING:
+		return "string"
+	case descriptorpb.FieldDescriptorProto_TYPE_BYTES:
+		return "bytes"
+	case descriptorpb.FieldDescriptorProto_TYPE_UINT32:
+		return "uint32"
+	case descriptorpb.FieldDescriptorProto_TYPE_SFIXED32:
+		return "sfixed32"
+	case descriptorpb.FieldDescriptorProto_TYPE_SFIXED64:
+		return "sfixed64"
+	case descriptorpb.FieldDescriptorProto_TYPE_SINT32:
+		return "sint32"
+	case descriptorpb.FieldDescriptorProto_TYPE_SINT64:
+		return "sint64"
+	case descriptorpb.FieldDescriptorProto_TYPE_MESSAGE:
+		if field.GetTypeName() != "" {
+			return strings.TrimPrefix(field.GetTypeName(), ".")
+		}
+		return "message"
+	case descriptorpb.FieldDescriptorProto_TYPE_ENUM:
+		if field.GetTypeName() != "" {
+			return strings.TrimPrefix(field.GetTypeName(), ".")
+		}
+		return "enum"
+	default:
+		return "unknown"
+	}
 }
 
 func (r *Reflector) GetAllServicesInfo() (*ServicesInfo, error) {
@@ -100,14 +329,23 @@ func (r *Reflector) GetAllServicesInfo() (*ServicesInfo, error) {
 	var services []ServiceInfo
 
 	for _, serviceName := range serviceNames {
-		serviceDesc, err := r.client.ResolveService(serviceName)
-		if err != nil {
-			continue
-		}
-
 		serviceInfo := ServiceInfo{
 			Name:    serviceName,
 			Methods: []MethodInfo{},
+		}
+
+		serviceDesc, err := r.client.ResolveService(serviceName)
+		if err != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			lowLevelMethods, lowLevelErr := r.getServiceMethodsLowLevel(ctx, serviceName)
+			cancel()
+
+			if lowLevelErr == nil {
+				serviceInfo.Methods = lowLevelMethods
+			}
+
+			services = append(services, serviceInfo)
+			continue
 		}
 
 		unwrapped := serviceDesc.UnwrapService()
@@ -121,16 +359,18 @@ func (r *Reflector) GetAllServicesInfo() (*ServicesInfo, error) {
 			requestExample, _ := GenerateJSONExample(requestMsg)
 			responseExample, _ := GenerateJSONExample(responseMsg)
 			requestSchema, _ := GenerateRequestSchema(requestMsg)
+			requestExampleString := GenerateJSONExampleWithComments(requestMsg)
 
 			serviceInfo.Methods = append(serviceInfo.Methods, MethodInfo{
-				Name:            string(method.Name()),
-				RequestType:     string(method.Input().FullName()),
-				ResponseType:    string(method.Output().FullName()),
-				Request:         requestMsg,
-				Response:        responseMsg,
-				RequestExample:  json.RawMessage(requestExample),
-				ResponseExample: json.RawMessage(responseExample),
-				RequestSchema:   json.RawMessage(requestSchema),
+				Name:                 string(method.Name()),
+				RequestType:          string(method.Input().FullName()),
+				ResponseType:         string(method.Output().FullName()),
+				Request:              requestMsg,
+				Response:             responseMsg,
+				RequestExample:       json.RawMessage(requestExample),
+				RequestExampleString: requestExampleString,
+				ResponseExample:      json.RawMessage(responseExample),
+				RequestSchema:        json.RawMessage(requestSchema),
 			})
 		}
 
@@ -173,6 +413,9 @@ func extractMessageInfoRecursive(msgDesc protoreflect.MessageDescriptor, visited
 		mapKey := ""
 		mapValue := ""
 
+		isWellKnown := false
+		wellKnownType := ""
+
 		if field.IsMap() {
 			isMap = true
 			mapKey = fieldKindToString(field.MapKey().Kind())
@@ -187,7 +430,10 @@ func extractMessageInfoRecursive(msgDesc protoreflect.MessageDescriptor, visited
 			fieldType = fmt.Sprintf("map<%s, %s>", mapKey, mapValue)
 		} else if field.Message() != nil {
 			fieldType = string(field.Message().FullName())
-			nestedMsg = extractMessageInfoRecursive(field.Message(), visited)
+			isWellKnown, wellKnownType = isWellKnownType(fieldType)
+			if !isWellKnown {
+				nestedMsg = extractMessageInfoRecursive(field.Message(), visited)
+			}
 		} else if field.Enum() != nil {
 			fieldType = string(field.Enum().FullName())
 		}
@@ -223,24 +469,47 @@ func extractMessageInfoRecursive(msgDesc protoreflect.MessageDescriptor, visited
 		}
 
 		fieldInfo := FieldInfo{
-			Name:       string(field.Name()),
-			Type:       fieldType,
-			Number:     int32(field.Number()),
-			Repeated:   field.Cardinality() == protoreflect.Repeated && !field.IsMap(),
-			Optional:   field.Cardinality() == protoreflect.Optional,
-			Required:   field.Cardinality() == protoreflect.Required,
-			IsMap:      isMap,
-			IsEnum:     isEnum,
-			MapKey:     mapKey,
-			MapValue:   mapValue,
-			OneofGroup: oneofGroup,
-			Message:    nestedMsg,
-			EnumValues: enumValues,
+			Name:          string(field.Name()),
+			Type:          fieldType,
+			Number:        int32(field.Number()),
+			Repeated:      field.Cardinality() == protoreflect.Repeated && !field.IsMap(),
+			Optional:      field.Cardinality() == protoreflect.Optional,
+			Required:      field.Cardinality() == protoreflect.Required,
+			IsMap:         isMap,
+			IsEnum:        isEnum,
+			IsWellKnown:   isWellKnown,
+			WellKnownType: wellKnownType,
+			MapKey:        mapKey,
+			MapValue:      mapValue,
+			OneofGroup:    oneofGroup,
+			Message:       nestedMsg,
+			EnumValues:    enumValues,
 		}
 		info.Fields = append(info.Fields, fieldInfo)
 	}
 
 	return info
+}
+
+func isWellKnownType(typeName string) (bool, string) {
+	switch typeName {
+	case "google.protobuf.Timestamp":
+		return true, "timestamp"
+	case "google.protobuf.Duration":
+		return true, "duration"
+	case "google.protobuf.Any":
+		return true, "any"
+	case "google.protobuf.Struct":
+		return true, "struct"
+	case "google.protobuf.Value":
+		return true, "value"
+	case "google.protobuf.ListValue":
+		return true, "list_value"
+	case "google.protobuf.Empty":
+		return true, "empty"
+	default:
+		return false, ""
+	}
 }
 
 func fieldKindToString(kind protoreflect.Kind) string {
@@ -293,6 +562,121 @@ func GenerateJSONExample(msg *MessageInfo) ([]byte, error) {
 
 	data := GenerateJSONValue(msg, make(map[string]bool))
 	return json.MarshalIndent(data, "", "  ")
+}
+
+func GenerateJSONExampleWithComments(msg *MessageInfo) string {
+	if msg == nil {
+		return "{}"
+	}
+	return generateJSONWithComments(msg, 0, make(map[string]bool), make(map[string]bool))
+}
+
+func generateJSONWithComments(msg *MessageInfo, indent int, visited map[string]bool, processedOneofs map[string]bool) string {
+	if msg == nil {
+		return "{}"
+	}
+
+	fullName := msg.Name
+	if visited[fullName] {
+		return "{}"
+	}
+	visited[fullName] = true
+	defer delete(visited, fullName)
+
+	oneofGroups := make(map[string]int)
+	for _, field := range msg.Fields {
+		if field.OneofGroup != "" {
+			oneofGroups[field.OneofGroup]++
+		}
+	}
+
+	var result strings.Builder
+	result.WriteString("{\n")
+
+	indentStr := strings.Repeat("  ", indent+1)
+	first := true
+
+	for _, field := range msg.Fields {
+		if !first {
+			result.WriteString(",\n")
+		}
+		first = false
+
+		if field.OneofGroup != "" {
+			oneofKey := fullName + "." + field.OneofGroup
+			if !processedOneofs[oneofKey] {
+				processedOneofs[oneofKey] = true
+
+				if oneofGroups[field.OneofGroup] > 1 {
+					result.WriteString(indentStr)
+					result.WriteString(fmt.Sprintf("// oneof %s (choose one):\n", field.OneofGroup))
+				}
+			}
+		}
+
+		result.WriteString(indentStr)
+		result.WriteString(fmt.Sprintf(`"%s": `, field.Name))
+		result.WriteString(generateFieldValueWithComments(field, indent+1, visited, processedOneofs))
+	}
+
+	result.WriteString("\n")
+	result.WriteString(strings.Repeat("  ", indent))
+	result.WriteString("}")
+
+	return result.String()
+}
+
+func generateFieldValueWithComments(field FieldInfo, indent int, visited map[string]bool, processedOneofs map[string]bool) string {
+	if field.Repeated {
+		return "[]"
+	}
+
+	if field.IsMap {
+		return "{}"
+	}
+
+	if field.IsWellKnown {
+		switch field.WellKnownType {
+		case "timestamp":
+			return `"2026-02-05T14:05:47Z"`
+		case "duration":
+			return `"1.5s"`
+		case "empty":
+			return "{}"
+		case "struct":
+			return "{}"
+		case "value":
+			return "null"
+		case "list_value":
+			return "[]"
+		case "any":
+			return `{"@type": ""}`
+		}
+	}
+
+	if field.Message != nil {
+		return generateJSONWithComments(field.Message, indent, visited, processedOneofs)
+	}
+
+	if field.IsEnum && len(field.EnumValues) > 0 {
+		return fmt.Sprintf(`"%s"`, field.EnumValues[0].Name)
+	}
+
+	switch field.Type {
+	case "string":
+		return `""`
+	case "int32", "int64", "uint32", "uint64", "sint32", "sint64",
+		"fixed32", "fixed64", "sfixed32", "sfixed64":
+		return "0"
+	case "double", "float":
+		return "0.0"
+	case "bool":
+		return "false"
+	case "bytes":
+		return `""`
+	default:
+		return `""`
+	}
 }
 
 func GenerateJSONValue(msg *MessageInfo, visited map[string]bool) map[string]interface{} {
@@ -364,6 +748,25 @@ func getDefaultValueForType(typeStr string) interface{} {
 }
 
 func getDefaultValueForField(field FieldInfo) interface{} {
+	if field.IsWellKnown {
+		switch field.WellKnownType {
+		case "timestamp":
+			return "2026-02-05T14:05:47Z"
+		case "duration":
+			return "1.5s"
+		case "empty":
+			return map[string]interface{}{}
+		case "struct":
+			return map[string]interface{}{}
+		case "value":
+			return nil
+		case "list_value":
+			return []interface{}{}
+		case "any":
+			return map[string]interface{}{"@type": ""}
+		}
+	}
+	
 	if len(field.EnumValues) > 0 {
 		return field.EnumValues[0].Name
 	}

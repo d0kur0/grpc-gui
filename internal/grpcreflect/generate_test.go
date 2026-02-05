@@ -334,3 +334,69 @@ func findField(msg *MessageInfo, fieldName string) *FieldInfo {
 	}
 	return nil
 }
+
+func TestGenerateJSONExample_WellKnownTypes(t *testing.T) {
+	msg := &MessageInfo{
+		Name: "testserver.WellKnownRequest",
+		Fields: []FieldInfo{
+			{
+				Name:          "timestamp_field",
+				Type:          "google.protobuf.Timestamp",
+				Number:        1,
+				IsWellKnown:   true,
+				WellKnownType: "timestamp",
+			},
+			{
+				Name:          "duration_field",
+				Type:          "google.protobuf.Duration",
+				Number:        2,
+				IsWellKnown:   true,
+				WellKnownType: "duration",
+			},
+			{
+				Name:          "empty_field",
+				Type:          "google.protobuf.Empty",
+				Number:        3,
+				IsWellKnown:   true,
+				WellKnownType: "empty",
+			},
+		},
+	}
+
+	jsonBytes, err := GenerateJSONExample(msg)
+	if err != nil {
+		t.Fatalf("GenerateJSONExample failed: %v", err)
+	}
+
+	t.Logf("Generated JSON:\n%s", string(jsonBytes))
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(jsonBytes, &result); err != nil {
+		t.Fatalf("Failed to unmarshal JSON: %v", err)
+	}
+
+	timestampField, ok := result["timestamp_field"].(string)
+	if !ok {
+		t.Fatalf("timestamp_field should be a string, got %T", result["timestamp_field"])
+	}
+	if timestampField == "" {
+		t.Error("timestamp_field should not be empty")
+	}
+	t.Logf("Timestamp field: %s", timestampField)
+
+	durationField, ok := result["duration_field"].(string)
+	if !ok {
+		t.Fatalf("duration_field should be a string, got %T", result["duration_field"])
+	}
+	if durationField != "1.5s" {
+		t.Errorf("duration_field should be '1.5s', got %s", durationField)
+	}
+
+	emptyField, ok := result["empty_field"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("empty_field should be an object, got %T", result["empty_field"])
+	}
+	if len(emptyField) != 0 {
+		t.Errorf("empty_field should be an empty object, got %d fields", len(emptyField))
+	}
+}

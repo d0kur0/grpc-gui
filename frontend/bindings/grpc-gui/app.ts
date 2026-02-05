@@ -20,12 +20,24 @@ export function CreateServer(name: string, address: string, useTLS: boolean, ins
     return $Call.ByID(3177189426, name, address, useTLS, insecure);
 }
 
+export function DeleteHistoryItem(id: number): $CancellablePromise<void> {
+    return $Call.ByID(2090475737, id);
+}
+
 export function DeleteServer(id: number): $CancellablePromise<void> {
     return $Call.ByID(963928181, id);
 }
 
 export function DoGRPCRequest(serverId: number, address: string, service: string, method: string, payload: string, requestHeaders: { [_: string]: string } | null, contextValues: { [_: string]: string } | null): $CancellablePromise<[string, number]> {
     return $Call.ByID(531879593, serverId, address, service, method, payload, requestHeaders, contextValues);
+}
+
+export function GetHistory(serverId: number, limit: number): $CancellablePromise<models$0.History[] | null> {
+    return $Call.ByID(210907985, serverId, limit);
+}
+
+export function GetHistoryItem(id: number): $CancellablePromise<models$0.History | null> {
+    return $Call.ByID(1570925930, id);
 }
 
 export function GetJsonExample(msg: grpcreflect$0.MessageInfo | null): $CancellablePromise<string> {
@@ -46,6 +58,10 @@ export function GetServers(): $CancellablePromise<models$0.Server[] | null> {
 
 export function GetServersWithReflection(): $CancellablePromise<$models.ServerWithReflection[] | null> {
     return $Call.ByID(3123129712);
+}
+
+export function ToggleFavoriteServer(serverID: number): $CancellablePromise<void> {
+    return $Call.ByID(372922338, serverID);
 }
 
 export function UpdateServer(id: number, name: string, address: string, useTLS: boolean, insecure: boolean): $CancellablePromise<void> {

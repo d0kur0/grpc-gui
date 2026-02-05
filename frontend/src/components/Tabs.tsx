@@ -1,5 +1,5 @@
 import { $tabs, Tab, TabComponent } from "../stores/tabs";
-import { createMemo, createSignal, For, onMount, Show } from "solid-js";
+import { createEffect, createMemo, Index, Show } from "solid-js";
 import "./Tabs.css";
 import { OcFilecode2 } from "solid-icons/oc";
 import { SendRequest, SendRequestProps } from "./SendRequest";
@@ -8,6 +8,7 @@ import { IoClose } from "solid-icons/io";
 
 export const Tabs = () => {
 	const { tabs } = $tabs;
+	let tabsListRef: HTMLDivElement | undefined;
 
 	const tab = createMemo(() => {
 		return tabs().find(tab => tab.isActive);
@@ -18,6 +19,32 @@ export const Tabs = () => {
 			(e.currentTarget as HTMLDivElement).scrollLeft += e.deltaY;
 		}
 	};
+
+	createEffect(() => {
+		if (!tab() || !tabsListRef) return;
+
+		const tabElement = tabsListRef.querySelector(`[data-tab-id="${tab()!.id}"]`) as HTMLElement; 
+		if (!tabElement) return;
+
+		const containerRect = tabsListRef.getBoundingClientRect();
+		const tabRect = tabElement.getBoundingClientRect();
+		const currentScroll = tabsListRef.scrollLeft;
+
+		const isLeftCut = tabRect.left < containerRect.left;
+		const isRightCut = tabRect.right > containerRect.right;
+
+		if (!isLeftCut && !isRightCut) return;
+
+		const diff = isLeftCut 
+			? containerRect.left - tabRect.left
+			: tabRect.right - containerRect.right;
+		
+		const scrollTo = isLeftCut ? currentScroll - diff : currentScroll + diff;
+
+		tabsListRef.scrollTo({ left: scrollTo, behavior: 'smooth' });
+	})
+
+
 
 	const renderTab = (tab: Tab) => {
 		switch (tab.component) {
@@ -32,26 +59,30 @@ export const Tabs = () => {
 	return (
 		<div class="app-tabs">
 			<Show when={tab()}>
-				<div class="app-tabs-list scrollbar" on:wheel={{
+				<div ref={tabsListRef} class="app-tabs-list scrollbar" on:wheel={{
 					passive: true,
 					handleEvent: handleWheel
 				}
 				}>
-					<For each={tabs()}>
-						{tab => {
+					<Index each={tabs()}>
+						{(tab, index) => {
+							const handleCloseTab = (e: MouseEvent) => {
+								e.stopPropagation();
+								$tabs.removeTab(tab().id);
+							};
 
+							const handleTabClick = () => {
+								$tabs.activateTab(tab().id);
+							};
 							
-							return <div role="button" onClick={() => $tabs.activateTab(tab.id)} classList={{ "app-tab-active": tab.isActive }} class="app-tab">
-								<span class="app-tab-name">{tab.name}</span>
-								<span title="Закрыть" role="button" class="app-tab-close" onClick={(e) => {
-									e.stopPropagation();
-									$tabs.removeTab(tab.id);
-								}}>
+							return <div data-tab-id={tab().id} role="button" onClick={handleTabClick} classList={{ "app-tab-active": tab().isActive }} class="app-tab">
+								<span class="app-tab-name">{tab().name}</span>
+								<span title="Закрыть" role="button" class="app-tab-close" onClick={handleCloseTab}>
 									<IoClose />
 								</span>
 							</div>;
 						}}
-					</For>
+					</Index>
 				</div>
 
 				<div class="app-tab-component scrollbar">{renderTab(tab()!)}</div>

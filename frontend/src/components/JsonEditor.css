@@ -1,0 +1,41 @@
+@reference "../App.css";
+
+.cm-activeLineGutter {
+	background-color: transparent !important;
+	@apply text-secondary/60;
+}
+
+.cm-foldGutter .cm-gutterElement {
+	cursor: pointer;
+}
+
+.cm-foldGutter .cm-gutterElement span {
+	display: inline-block;
+	opacity: 0;
+	transition: opacity 0.2s;
+}
+
+.cm-gutters:hover .cm-foldGutter .cm-gutterElement span {
+	opacity: 1;
+}
+
+.cm-foldGutter .cm-gutterElement span[title="Fold line"]::before {
+	content: "▾";
+	display: inline-block;
+	font-size: 15px;
+}
+
+.cm-foldGutter .cm-gutterElement span[title="Unfold line"]::before {
+	content: "▸";
+	display: inline-block;
+	font-size: 15px;
+}
+
+.cm-foldGutter .cm-gutterElement span[title="Fold line"],
+.cm-foldGutter .cm-gutterElement span[title="Unfold line"] {
+	font-size: 0;
+}
+
+.cm-activeLine {
+	background-color: #f4f8ff0b !important;
+}

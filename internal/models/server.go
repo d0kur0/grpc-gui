@@ -12,8 +12,9 @@ type Server struct {
 	UpdatedAt time.Time      `json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"deletedAt"`
 
-	Name    string `json:"name"`
-	Address string `json:"address"`
+	Name     string `json:"name"`
+	Address  string `json:"address"`
+	Favorite bool   `json:"favorite"`
 
 	OptUseTLS   bool `json:"optUseTLS"`
 	OptInsecure bool `json:"optInsecure"`

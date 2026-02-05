@@ -55,8 +55,8 @@ func main() {
 		BackgroundColour: application.NewRGB(27, 38, 54),
 		URL:              "/",
 		Frameless:        true,
-		Width:            1244,
-		Height:           700,
+		Width:            1444,
+		Height:           900,
 	})
 
 	err = app.Run()

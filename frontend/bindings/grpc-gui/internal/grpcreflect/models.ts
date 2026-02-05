@@ -19,6 +19,8 @@ export interface FieldInfo {
     "required": boolean;
     "isMap": boolean;
     "isEnum": boolean;
+    "isWellKnown": boolean;
+    "wellKnownType"?: string;
     "mapKey": string;
     "mapValue": string;
     "oneofGroup"?: string;
@@ -38,6 +40,7 @@ export interface MethodInfo {
     "request"?: MessageInfo | null;
     "response"?: MessageInfo | null;
     "requestExample"?: json$0.RawMessage;
+    "requestExampleString"?: string;
     "responseExample"?: json$0.RawMessage;
     "requestSchema"?: json$0.RawMessage;
 }

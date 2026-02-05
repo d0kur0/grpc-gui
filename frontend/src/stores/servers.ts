@@ -57,11 +57,37 @@ const createServersStore = () => {
 		return `tab-${serverId}-${serviceName}-${methodName}`;
 	};
 
+	const toggleFavorite = (serverId: number) => {
+		setServers(s => {
+			const updated = s.map(v => {
+				if (v.server?.id === serverId) {
+					return {
+						...v,
+						server: v.server ? { ...v.server, favorite: !v.server.favorite } : undefined,
+					};
+				}
+				return v;
+			});
+			
+			return updated.sort((a, b) => {
+				const aFav = a.server?.favorite ? 1 : 0;
+				const bFav = b.server?.favorite ? 1 : 0;
+				if (aFav !== bFav) {
+					return bFav - aFav;
+				}
+				const aTime = a.server?.createdAt ? new Date(a.server.createdAt).getTime() : 0;
+				const bTime = b.server?.createdAt ? new Date(b.server.createdAt).getTime() : 0;
+				return bTime - aTime;
+			});
+		});
+	};
+
 	return {
 		servers,
 		refreshServers,
 		getTabIdForMethod,
 		refreshServerById,
+		toggleFavorite,
 		getServerExpandPersistentKey,
 		getServiceExpandPersistentKey,
 		getServerBusyPersistentKey,

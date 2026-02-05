@@ -8,6 +8,28 @@ import * as gorm$0 from "../../../gorm.io/gorm/models.js";
 // @ts-ignore: Unused imports
 import * as time$0 from "../../../time/models.js";
 
+export interface History {
+    "id": number;
+    "createdAt": time$0.Time;
+    "updatedAt": time$0.Time;
+    "deletedAt"?: gorm$0.DeletedAt;
+    "serverId": number;
+    "server"?: Server;
+    "request": string;
+    "response": string;
+    "service": string;
+    "method": string;
+    "statusCode": number;
+
+    /**
+     * Время выполнения запроса в миллисекундах
+     */
+    "executionTime": number;
+    "requestHeaders"?: string;
+    "responseHeaders"?: string;
+    "contextValues"?: string;
+}
+
 export interface Server {
     "id": number;
     "createdAt": time$0.Time;
@@ -15,6 +37,7 @@ export interface Server {
     "deletedAt": gorm$0.DeletedAt;
     "name": string;
     "address": string;
+    "favorite": boolean;
     "optUseTLS": boolean;
     "optInsecure": boolean;
 }

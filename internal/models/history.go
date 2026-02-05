@@ -18,9 +18,10 @@ type History struct {
 	Request  string `json:"request"`
 	Response string `json:"response"`
 
-	Service    string `json:"service"`
-	Method     string `json:"method"`
-	StatusCode int32  `json:"statusCode"`
+	Service       string `json:"service"`
+	Method        string `json:"method"`
+	StatusCode    int32  `json:"statusCode"`
+	ExecutionTime int32  `json:"executionTime"` // Время выполнения запроса в миллисекундах
 
 	RequestHeaders  string `json:"requestHeaders,omitempty"`
 	ResponseHeaders string `json:"responseHeaders,omitempty"`

@@ -1,4 +1,5 @@
 import { createRoot, createSignal, JSX } from "solid-js";
+import { History } from "../../bindings/grpc-gui/internal/models/models";
 
 export enum TabComponent {
 	REQUEST,
@@ -19,8 +20,8 @@ const createTabsStore = () => {
 	const addTab = (tab: Tab) => {
 		setTabs(prev => {
 			const hasSameTab = prev.find(t => t.id === tab.id);
-			
-			if (tab.isActive){
+
+			if (tab.isActive) {
 				prev = prev.map(t => ({ ...t, isActive: false }));
 			}
 
@@ -49,12 +50,29 @@ const createTabsStore = () => {
 		setTabs(prev => prev.map(t => ({ ...t, isActive: t.id === id })));
 	};
 
+	const openHistoryRequest = (history: History) => {
+		addTab({
+			id: `history-${history.id}`,
+			name: `${history.service} ${history.method} (История)`,
+			component: TabComponent.REQUEST,
+			componentProps: {
+				serverId: history.serverId,
+				serviceName: history.service,
+				methodName: history.method,
+				historyData: history,
+			},
+			isActive: true,
+			temporary: false,
+		});
+	};
+
 	return {
 		tabs,
 		addTab,
 		removeTab,
 		updateTab,
 		activateTab,
+		openHistoryRequest,
 	};
 };
 

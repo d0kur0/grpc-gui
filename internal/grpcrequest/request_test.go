@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
+	"grpc-gui/internal/utils"
 	"grpc-gui/testserver/proto"
 )
 
@@ -102,7 +103,8 @@ func TestDoGRPCRequest_SimpleCall(t *testing.T) {
 
 	payload := `{"message": "test", "value": 42}`
 
-	resp, code, _, err := DoGRPCRequest(addr, "testserver.TestService", "SimpleCall", payload, nil, nil)
+	opts := &utils.GRPCConnectOptions{UseTLS: false, Insecure: false}
+	resp, code, _, _, err := DoGRPCRequest(addr, "testserver.TestService", "SimpleCall", payload, nil, nil, opts)
 	if err != nil {
 		t.Fatalf("DoGRPCRequest failed: %v", err)
 	}
@@ -127,7 +129,8 @@ func TestDoGRPCRequest_EmptyCall(t *testing.T) {
 	addr, stop := startTestServer(t)
 	defer stop()
 
-	resp, code, _, err := DoGRPCRequest(addr, "testserver.TestService", "EmptyCall", "", nil, nil)
+	opts := &utils.GRPCConnectOptions{UseTLS: false, Insecure: false}
+	resp, code, _, _, err := DoGRPCRequest(addr, "testserver.TestService", "EmptyCall", "", nil, nil, opts)
 	if err != nil {
 		t.Fatalf("DoGRPCRequest failed: %v", err)
 	}
@@ -156,7 +159,8 @@ func TestDoGRPCRequest_ComplexCall(t *testing.T) {
 		"status": "ACTIVE"
 	}`
 
-	resp, code, _, err := DoGRPCRequest(addr, "testserver.TestService", "ComplexCall", payload, nil, nil)
+	opts := &utils.GRPCConnectOptions{UseTLS: false, Insecure: false}
+	resp, code, _, _, err := DoGRPCRequest(addr, "testserver.TestService", "ComplexCall", payload, nil, nil, opts)
 	if err != nil {
 		t.Fatalf("DoGRPCRequest failed: %v", err)
 	}
@@ -189,7 +193,8 @@ func TestDoGRPCRequest_GetUser(t *testing.T) {
 
 	payload := `{"message": "John Doe"}`
 
-	resp, code, _, err := DoGRPCRequest(addr, "testserver.AnotherService", "GetUser", payload, nil, nil)
+	opts := &utils.GRPCConnectOptions{UseTLS: false, Insecure: false}
+	resp, code, _, _, err := DoGRPCRequest(addr, "testserver.AnotherService", "GetUser", payload, nil, nil, opts)
 	if err != nil {
 		t.Fatalf("DoGRPCRequest failed: %v", err)
 	}
@@ -220,7 +225,8 @@ func TestDoGRPCRequest_GetUsers(t *testing.T) {
 	addr, stop := startTestServer(t)
 	defer stop()
 
-	resp, code, _, err := DoGRPCRequest(addr, "testserver.AnotherService", "GetUsers", "", nil, nil)
+	opts := &utils.GRPCConnectOptions{UseTLS: false, Insecure: false}
+	resp, code, _, _, err := DoGRPCRequest(addr, "testserver.AnotherService", "GetUsers", "", nil, nil, opts)
 	if err != nil {
 		t.Fatalf("DoGRPCRequest failed: %v", err)
 	}
@@ -254,7 +260,8 @@ func TestDoGRPCRequest_InvalidService(t *testing.T) {
 	addr, stop := startTestServer(t)
 	defer stop()
 
-	_, code, _, err := DoGRPCRequest(addr, "testserver.InvalidService", "SimpleCall", "", nil, nil)
+	opts := &utils.GRPCConnectOptions{UseTLS: false, Insecure: false}
+	_, code, _, _, err := DoGRPCRequest(addr, "testserver.InvalidService", "SimpleCall", "", nil, nil, opts)
 	if err == nil {
 		t.Error("expected error for invalid service, got nil")
 	}
@@ -267,7 +274,8 @@ func TestDoGRPCRequest_InvalidMethod(t *testing.T) {
 	addr, stop := startTestServer(t)
 	defer stop()
 
-	_, code, _, err := DoGRPCRequest(addr, "testserver.TestService", "InvalidMethod", "", nil, nil)
+	opts := &utils.GRPCConnectOptions{UseTLS: false, Insecure: false}
+	_, code, _, _, err := DoGRPCRequest(addr, "testserver.TestService", "InvalidMethod", "", nil, nil, opts)
 	if err == nil {
 		t.Error("expected error for invalid method, got nil")
 	}
@@ -280,7 +288,8 @@ func TestDoGRPCRequest_InvalidPayload(t *testing.T) {
 	addr, stop := startTestServer(t)
 	defer stop()
 
-	_, code, _, err := DoGRPCRequest(addr, "testserver.TestService", "SimpleCall", "invalid json", nil, nil)
+	opts := &utils.GRPCConnectOptions{UseTLS: false, Insecure: false}
+	_, code, _, _, err := DoGRPCRequest(addr, "testserver.TestService", "SimpleCall", "invalid json", nil, nil, opts)
 	if err == nil {
 		t.Error("expected error for invalid payload, got nil")
 	}

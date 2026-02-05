@@ -3,11 +3,11 @@ import "./Viewport.css";
 import { Window } from "@wailsio/runtime";
 import { RiDevelopmentTerminalBoxFill } from "solid-icons/ri";
 import { FaSolidArrowRightLong, FaSolidCircleInfo } from "solid-icons/fa";
-import { useNavigate } from "@solidjs/router";
+import { useNavigate, useLocation } from "@solidjs/router";
 import { $notifications, NotificationType } from "../stores/notifications";
 import { AiTwotoneCheckCircle } from "solid-icons/ai";
 import { BiRegularErrorCircle } from "solid-icons/bi";
-import { IoWarning } from "solid-icons/io";
+import { IoWarning, IoTime, IoHome } from "solid-icons/io";
 
 type ViewportProps = {
 	subtitle?: string;
@@ -18,6 +18,7 @@ export const Viewport = (props: ViewportProps) => {
 	const [isMaximised, setIsMaximised] = createSignal(false);
 
 	const navigate = useNavigate();
+	const location = useLocation();
 
 	createEffect(async () => {
 		const isMaximised = await Window.IsMaximised();
@@ -51,6 +52,22 @@ export const Viewport = (props: ViewportProps) => {
 				</div>
 
 				<div class="viewport__app-controls">
+					<button 
+						title="Воркспейс" 
+						class="btn btn-xs" 
+						classList={{ "btn-neutral": location.pathname === "/" }}
+						onClick={() => navigate("/")}
+					>
+						<IoHome class="w-4 h-4" />
+					</button>
+					<button 
+						title="История" 
+						class="btn btn-xs" 
+						classList={{ "btn-neutral": location.pathname === "/history" }}
+						onClick={() => navigate("/history")}
+					>
+						<IoTime class="w-4 h-4" />
+					</button>
 					<button title="Открыть DevTools" class="btn btn-xs" onClick={Window.OpenDevTools}>
 						<RiDevelopmentTerminalBoxFill class="w-4 h-4" />
 					</button>

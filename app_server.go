@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"grpc-gui/internal/consts"
 	"grpc-gui/internal/grpcreflect"
 	"grpc-gui/internal/grpcrequest"
 	"grpc-gui/internal/models"
@@ -77,7 +78,7 @@ func (a *App) getServerReflection(ctx context.Context, server models.Server) Ser
 	}
 
 	for _, service := range services.Services {
-		if !grpcreflect.IsReflectionService(service.Name) {
+		if !grpcreflect.IsSystemService(service.Name) {
 			filteredServices.Services = append(filteredServices.Services, service)
 		}
 	}
@@ -159,7 +160,17 @@ func (a *App) GetJsonExample(msg *grpcreflect.MessageInfo) (string, error) {
 }
 
 func (a *App) DoGRPCRequest(serverId uint, address, service, method, payload string, requestHeaders, contextValues map[string]string) (string, int32, error) {
-	resp, code, respHeaders, err := grpcrequest.DoGRPCRequest(address, service, method, payload, requestHeaders, contextValues)
+	server, err := a.storage.GetServer(serverId)
+	if err != nil {
+		return "", 0, err
+	}
+
+	opts := &utils.GRPCConnectOptions{
+		UseTLS:   server.OptUseTLS,
+		Insecure: server.OptInsecure,
+	}
+
+	resp, code, respHeaders, execTime, err := grpcrequest.DoGRPCRequest(address, service, method, payload, requestHeaders, contextValues, opts)
 
 	var historyRecord models.History
 	historyRecord.ServerID = serverId
@@ -168,6 +179,7 @@ func (a *App) DoGRPCRequest(serverId uint, address, service, method, payload str
 	historyRecord.Request = payload
 	historyRecord.Response = resp
 	historyRecord.StatusCode = int32(code)
+	historyRecord.ExecutionTime = execTime
 
 	if len(requestHeaders) > 0 {
 		reqHeadersJSON, _ := json.Marshal(requestHeaders)
@@ -194,7 +206,21 @@ func (a *App) DoGRPCRequest(serverId uint, address, service, method, payload str
 		return "", int32(code), err
 	}
 
+	_ = a.storage.CleanupOldHistory(consts.MaxHistorySize)
+
 	return resp, int32(code), err
+}
+
+func (a *App) GetHistory(serverId uint, limit int) ([]models.History, error) {
+	return a.storage.GetHistory(serverId, limit)
+}
+
+func (a *App) GetHistoryItem(id uint) (*models.History, error) {
+	return a.storage.GetHistoryItem(id)
+}
+
+func (a *App) DeleteHistoryItem(id uint) error {
+	return a.storage.DeleteHistoryItem(id)
 }
 
 func (a *App) ValidateServerAddress(address string, useTLS, insecure bool) ValidationResult {
@@ -239,4 +265,8 @@ func (a *App) ValidateServerAddress(address string, useTLS, insecure bool) Valid
 	return ValidationResult{
 		Status: ValidationStatusSuccess,
 	}
+}
+
+func (a *App) ToggleFavoriteServer(serverID uint) error {
+	return a.storage.ToggleFavorite(serverID)
 }

@@ -1185,7 +1185,7 @@ func TestOneofGroup(t *testing.T) {
 	}
 }
 
-func TestIsReflectionService(t *testing.T) {
+func TestIsSystemService(t *testing.T) {
 	tests := []struct {
 		name     string
 		expected bool
@@ -1193,6 +1193,7 @@ func TestIsReflectionService(t *testing.T) {
 		{"grpc.reflection.v1.ServerReflection", true},
 		{"grpc.reflection.v1alpha.ServerReflection", true},
 		{"grpc.reflection.v1beta.ServerReflection", true},
+		{"grpc.health.v1.Health", true},
 		{"testserver.TestService", false},
 		{"testserver.AnotherService", false},
 		{"some.other.Service", false},
@@ -1201,9 +1202,9 @@ func TestIsReflectionService(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := IsReflectionService(tt.name)
+			result := IsSystemService(tt.name)
 			if result != tt.expected {
-				t.Errorf("IsReflectionService(%q) = %v, expected %v", tt.name, result, tt.expected)
+				t.Errorf("IsSystemService(%q) = %v, expected %v", tt.name, result, tt.expected)
 			}
 		})
 	}

@@ -4,4 +4,6 @@ const (
 	AppName      = "grpc-gui"
 	AppConfigDir = ".grpc-gui"
 	AppDbName    = "grpc-gui.db"
+
+	MaxHistorySize = 500
 )

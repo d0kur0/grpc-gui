@@ -9,9 +9,11 @@ import { DropDownContainer } from "../components/Dropdown";
 import { EmptyFallback } from "../components/EmptyFallback";
 import { IoChevronCollapse, IoExpand } from "solid-icons/io";
 import { FaSolidHashtag } from "solid-icons/fa";
+import { TiStarOutline, TiStarFullOutline } from "solid-icons/ti";
 import { $tabs, TabComponent } from "../stores/tabs";
 import { SendRequest } from "./SendRequest";
 import { ServerWithReflection } from "../../bindings/grpc-gui";
+import { ToggleFavoriteServer } from "../../bindings/grpc-gui/app";
 
 export const WorkspaceServicesMenu = () => {
 	const { servers } = $servers;
@@ -68,6 +70,21 @@ export const WorkspaceServicesMenu = () => {
 		}
 	};
 
+	const handleToggleFavorite = async (e: MouseEvent, serverId: number) => {
+		e.stopPropagation();
+		$servers.toggleFavorite(serverId);
+		try {
+			await ToggleFavoriteServer(serverId);
+		} catch (err) {
+			$servers.toggleFavorite(serverId);
+			$notifications.addNotification({
+				type: NotificationType.ERROR,
+				title: "Ошибка",
+				message: "Не удалось изменить избранное",
+			});
+		}
+	};
+
 	const handleCollapseAllServers = () => {
 		servers().forEach(server => {
 			$expand.setByKey(getServerExpandPersistentKey(server.server?.id!), false);
@@ -107,7 +124,7 @@ export const WorkspaceServicesMenu = () => {
 						</button>
 					</Show>
 
-					<button class="btn btn-xs btn-primary" onClick={handleAddService}>
+					<button class="btn btn-xs btn-secondary" onClick={handleAddService}>
 						Добавить
 					</button>
 				</div>
@@ -126,6 +143,15 @@ export const WorkspaceServicesMenu = () => {
 							<DropDownContainer
 								open={expanded()[serverExpandKey]}
 								title={server.server?.name!}
+								prefix={
+									<button
+										class="hover:text-warning transition-colors cursor-default"
+										onClick={(e) => handleToggleFavorite(e, serverId)}
+										title={server.server?.favorite ? "Убрать из избранного" : "Добавить в избранное"}
+									>
+										{server.server?.favorite ? <TiStarFullOutline class="w-3 h-3" /> : <TiStarOutline class="w-3 h-3" />}
+									</button>
+								}
 								onOpenChange={v => handleToggleServerExpand(serverExpandKey, v)}>
 								<Show when={!server.error}>
 									<For

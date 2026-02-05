@@ -4,9 +4,12 @@
 	width: 100%;
 	height: 100%;
 	overflow: hidden;
+
+	--tab-height: 41px;
 }
 
 .app-tabs-list {
+	height: var(--tab-height);
 	max-width: 100%;
 	overflow-x: scroll;
 	overflow-y: hidden;
@@ -47,5 +50,6 @@
 }
 
 .app-tab-component {
-	height: calc(100% - var(--title-height));
+	height: calc(100% - var(--tab-height)); 
+	overflow-y: scroll;
 }

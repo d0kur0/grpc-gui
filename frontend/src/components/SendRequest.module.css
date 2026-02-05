@@ -2,13 +2,97 @@
 
 .root {
 	height: 100%;
-	overflow-y: scroll;
+	@apply flex flex-col;
+}
+
+.header {
+	@apply p-4 border-b border-base-content/10;
 }
 
 .description {
-	@apply p-4;
+	@apply flex items-center gap-2 mb-2;
 }
 
 .descriptionTitle {
 	@apply text-base-content/90 font-semibold;
+}
+
+.separator {
+	@apply text-base-content/30;
+}
+
+.address {
+	@apply text-sm text-base-content/60;
+}
+
+.content {
+	@apply flex-1 flex flex-col lg:flex-row overflow-hidden;
+}
+
+.requestSection {
+	@apply flex flex-col w-full lg:w-1/2 border-b lg:border-b-0 lg:border-r border-base-content/10;
+}
+
+.tabs {
+	@apply flex justify-between items-center border-b border-base-content/10 px-2;
+	min-height: 2.5rem;
+}
+
+.tabsList {
+	@apply flex;
+}
+
+.tab {
+	@apply px-4 py-2 text-sm transition-colors border-b-2 border-transparent cursor-pointer;
+	@apply text-base-content/60 hover:text-base-content/90;
+	@apply flex items-center;
+}
+
+.tabActive {
+	@apply text-primary border-primary;
+}
+
+.tabContent {
+	@apply flex-1 overflow-auto;
+}
+
+.editorWrapper {
+	@apply h-full w-full;
+}
+
+.keyValueList {
+	@apply p-4 flex flex-col gap-2;
+}
+
+.keyValueDescription {
+	@apply text-sm text-base-content/60 mb-2 pb-2 border-b border-base-content/10;
+}
+
+.keyValueRow {
+	@apply flex gap-2 items-center;
+}
+
+.keyValueActions {
+	@apply pt-2;
+}
+
+.responseSection {
+	@apply flex flex-col w-full lg:w-1/2;
+}
+
+.responseHeader {
+	@apply px-4 py-2 border-b border-base-content/10 flex justify-between items-center;
+	min-height: 2.5rem;
+}
+
+.responseTitle {
+	@apply text-sm font-semibold text-base-content/90;
+}
+
+.responseActions {
+	@apply flex gap-1 items-center;
+}
+
+.responseTime {
+	@apply text-xs text-success;
 }

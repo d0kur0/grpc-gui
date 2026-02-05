@@ -23,6 +23,7 @@
 .viewport__body {
 	height: calc(100vh - var(--controls-height));
 	overflow: auto;
+	scrollbar-gutter: stable;
 }
 
 .viewport__window-controls {

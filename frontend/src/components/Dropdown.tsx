@@ -4,6 +4,7 @@ import { JSX, Show } from "solid-js";
 export type DropDownContainerProps = {
 	open: boolean;
 	title: string;
+	prefix?: JSX.Element;
 	children: JSX.Element | JSX.Element[];
 	onOpenChange: (open: boolean) => void;
 };
@@ -15,7 +16,10 @@ export const DropDownContainer = (props: DropDownContainerProps) => {
 				class="cursor-pointer flex gap-0.5 items-center text-base-content/70 py-1 w-full transition-all duration-300 hover:text-base-content"
 				onClick={() => props.onOpenChange(!props.open)}>
 				<TiChevronRight class="text-xs" classList={{ "rotate-90": props.open }} />
-				<span class="text-sm">{props.title}</span>
+				<Show when={props.prefix}>
+					{props.prefix}
+				</Show>
+				<span class="text-sm truncate">{props.title}</span>
 			</button>
 
 			<Show when={props.open}>
