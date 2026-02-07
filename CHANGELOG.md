@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/d0kur0/grpc-gui/compare/v1.0.0...v1.0.1) (2026-02-07)
+
+
+### Bug Fixes
+
+* rebuild binding ([fb5f844](https://github.com/d0kur0/grpc-gui/commit/fb5f8445d9e65780898c7e10d3896eb7d604f946))
+
 # 1.0.0 (2026-02-07)
 
 
