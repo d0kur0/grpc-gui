@@ -1,0 +1,38 @@
+{
+  "branches": ["main", "master"],
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "@semantic-release/github",
+      {
+        "assets": [
+          {
+            "path": "bin/grpc-gui.exe",
+            "label": "grpc-gui.exe (Windows Portable)"
+          },
+          {
+            "path": "bin/grpc-gui-amd64-installer.exe",
+            "label": "grpc-gui-amd64-installer.exe (Windows Installer)"
+          },
+          {
+            "path": "bin/grpc-gui.dmg",
+            "label": "grpc-gui.dmg (macOS)"
+          }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md"]
+      }
+    ]
+  ]
+}
