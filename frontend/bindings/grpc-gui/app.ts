@@ -32,7 +32,7 @@ export function DeleteTabState(tabID: string): $CancellablePromise<void> {
     return $Call.ByID(1010453490, tabID);
 }
 
-export function DoGRPCRequest(serverId: number, address: string, service: string, method: string, payload: string, requestHeaders: { [_: string]: string } | null, contextValues: { [_: string]: string } | null): $CancellablePromise<[string, number]> {
+export function DoGRPCRequest(serverId: number, address: string, service: string, method: string, payload: string, requestHeaders: { [_ in string]?: string } | null, contextValues: { [_ in string]?: string } | null): $CancellablePromise<[string, number]> {
     return $Call.ByID(531879593, serverId, address, service, method, payload, requestHeaders, contextValues);
 }
 
