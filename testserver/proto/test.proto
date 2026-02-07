@@ -4,6 +4,9 @@ package testserver;
 
 option go_package = "grpc-gui/testserver/proto";
 
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+
 enum Status {
   UNKNOWN = 0;
   PENDING = 1;
@@ -112,10 +115,32 @@ message EmptyRequest {}
 
 message EmptyResponse {}
 
+message ScheduleRequest {
+  string task_name = 1;
+  Priority priority = 2;
+  google.protobuf.Timestamp scheduled_at = 3;
+  google.protobuf.Duration timeout = 4;
+  google.protobuf.Timestamp deadline = 5;
+  Status status = 6;
+  repeated google.protobuf.Timestamp checkpoints = 7;
+  map<string, google.protobuf.Duration> phase_durations = 8;
+}
+
+message ScheduleResponse {
+  int64 task_id = 1;
+  Status status = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp starts_at = 4;
+  google.protobuf.Duration estimated_duration = 5;
+  Priority assigned_priority = 6;
+  string message = 7;
+}
+
 service TestService {
   rpc SimpleCall(SimpleRequest) returns (SimpleResponse);
   rpc ComplexCall(ComplexRequest) returns (ComplexResponse);
   rpc EmptyCall(EmptyRequest) returns (EmptyResponse);
+  rpc ScheduleTask(ScheduleRequest) returns (ScheduleResponse);
   rpc ServerStream(SimpleRequest) returns (stream StreamResponse);
   rpc ClientStream(stream StreamRequest) returns (ComplexResponse);
   rpc BidirectionalStream(stream StreamRequest) returns (stream StreamResponse);

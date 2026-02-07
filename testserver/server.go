@@ -7,9 +7,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"grpc-gui/testserver/proto"
 )
@@ -48,6 +50,20 @@ func (s *testServer) ComplexCall(ctx context.Context, req *proto.ComplexRequest)
 
 func (s *testServer) EmptyCall(ctx context.Context, req *proto.EmptyRequest) (*proto.EmptyResponse, error) {
 	return &proto.EmptyResponse{}, nil
+}
+
+func (s *testServer) ScheduleTask(ctx context.Context, req *proto.ScheduleRequest) (*proto.ScheduleResponse, error) {
+	now := time.Now()
+	
+	return &proto.ScheduleResponse{
+		TaskId:            12345,
+		Status:            req.Status,
+		CreatedAt:         timestamppb.New(now),
+		StartsAt:          req.ScheduledAt,
+		EstimatedDuration: req.Timeout,
+		AssignedPriority:  req.Priority,
+		Message:           fmt.Sprintf("Task '%s' scheduled successfully", req.TaskName),
+	}, nil
 }
 
 func (s *testServer) ServerStream(req *proto.SimpleRequest, stream proto.TestService_ServerStreamServer) error {
