@@ -39,34 +39,29 @@ export const DurationPopover = (props: DurationPopoverProps) => {
 
 	return (
 		<Popover.Root>
-			<Popover.Trigger class="inline-flex items-center ml-1 cursor-pointer text-accent hover:text-accent-focus transition-colors">
-				<FaSolidHourglass class="w-3 h-3" />
+			<Popover.Trigger class="inline-flex items-center ml-1 cursor-pointer text-secondary hover:text-secondary/60 transition-colors">
+				<FaSolidHourglass class="w-3.5 h-3.5" />
 			</Popover.Trigger>
 			<Popover.Portal>
 				<Popover.Content class="z-50 rounded-lg border border-base-300 bg-base-100 p-4 shadow-lg min-w-[320px]">
 					<Popover.Arrow />
 					<div class="flex flex-col gap-3">
-						<div class="text-sm font-semibold text-base-content">
-							google.protobuf.Duration
-						</div>
-						<div class="text-xs text-base-content/60">
-							Format: number + unit (s, m, h)
-						</div>
+						<div class="text-sm font-semibold text-base-content">google.protobuf.Duration</div>
+						<div class="text-xs text-base-content/60">Format: number + unit (s, m, h)</div>
 						<div class="divider my-0" />
 						<div class="flex gap-2">
 							<input
 								type="number"
 								value={value()}
-								onInput={(e) => setValue(e.currentTarget.value)}
+								onInput={e => setValue(e.currentTarget.value)}
 								class="input input-sm input-bordered flex-1"
 								placeholder="1"
 								step="0.1"
 							/>
 							<select
 								value={unit()}
-								onChange={(e) => setUnit(e.currentTarget.value)}
-								class="select select-sm select-bordered"
-							>
+								onChange={e => setUnit(e.currentTarget.value)}
+								class="select select-sm select-bordered">
 								<option value="s">seconds</option>
 								<option value="m">minutes</option>
 								<option value="h">hours</option>
@@ -74,11 +69,8 @@ export const DurationPopover = (props: DurationPopoverProps) => {
 						</div>
 						<div class="text-xs text-base-content/80">Presets:</div>
 						<div class="flex flex-wrap gap-1">
-							{presetDurations.map((preset) => (
-								<button
-									onClick={() => applyPreset(preset)}
-									class="btn btn-xs btn-ghost"
-								>
+							{presetDurations.map(preset => (
+								<button onClick={() => applyPreset(preset)} class="btn btn-xs btn-ghost">
 									{preset.label}
 								</button>
 							))}

@@ -7,19 +7,28 @@ import (
 )
 
 type App struct {
-	storage *storage.SQLiteStorage
+	storage    *storage.SQLiteStorage
+	tabStorage *storage.TabStorage
 }
 
 func NewApp(dbPath string) *App {
-	storage, err := storage.NewSQLiteStorage(dbPath)
+	sqliteStorage, err := storage.NewSQLiteStorage(dbPath)
 	if err != nil {
 		log.Fatalf("failed to create storage: %v", err)
 	}
 
-	err = storage.AutoMigrate(&models.Server{}, &models.History{})
+	err = sqliteStorage.AutoMigrate(&models.Server{}, &models.History{})
 	if err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
-	return &App{storage: storage}
+	tabStorage, err := storage.NewTabStorage()
+	if err != nil {
+		log.Fatalf("failed to create tab storage: %v", err)
+	}
+
+	return &App{
+		storage:    sqliteStorage,
+		tabStorage: tabStorage,
+	}
 }

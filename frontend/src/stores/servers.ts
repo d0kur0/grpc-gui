@@ -5,22 +5,24 @@ import { $notifications, NotificationType } from "./notifications";
 
 const createServersStore = () => {
 	const [servers, setServers] = createSignal<ServerWithReflection[]>([]);
+	const [isLoading, setIsLoading] = createSignal(false);
 
 	onMount(() => refreshServers());
 
 	const refreshServers = async () => {
+		setIsLoading(true);
 		try {
 			const servers = await GetServersWithReflection();
-			if (!servers) {
-				throw new Error("GetServersWithReflection returned null");
-			}
-			setServers(servers);
+			setServers(servers || []);
 		} catch (err) {
-			return $notifications.addNotification({
+			console.error("Failed to fetch servers:", err);
+			$notifications.addNotification({
 				type: NotificationType.ERROR,
 				title: "Ошибка",
 				message: "Не удалось получить список сервисов",
 			});
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -63,12 +65,12 @@ const createServersStore = () => {
 				if (v.server?.id === serverId) {
 					return {
 						...v,
-						server: v.server ? { ...v.server, favorite: !v.server.favorite } : undefined,
+						server: v.server ? { ...v.server, favorite: !v.server.favorite } : null,
 					};
 				}
 				return v;
 			});
-			
+
 			return updated.sort((a, b) => {
 				const aFav = a.server?.favorite ? 1 : 0;
 				const bFav = b.server?.favorite ? 1 : 0;
@@ -82,12 +84,18 @@ const createServersStore = () => {
 		});
 	};
 
+	const removeServer = (serverId: number) => {
+		setServers(s => s.filter(v => v.server?.id !== serverId));
+	};
+
 	return {
 		servers,
+		isLoading,
 		refreshServers,
 		getTabIdForMethod,
 		refreshServerById,
 		toggleFavorite,
+		removeServer,
 		getServerExpandPersistentKey,
 		getServiceExpandPersistentKey,
 		getServerBusyPersistentKey,

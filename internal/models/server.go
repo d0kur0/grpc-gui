@@ -18,4 +18,9 @@ type Server struct {
 
 	OptUseTLS   bool `json:"optUseTLS"`
 	OptInsecure bool `json:"optInsecure"`
+
+	ReflectionCache        string    `json:"-"`
+	ReflectionCachedAt     time.Time `json:"-"`
+	ReflectionAccessCount  int       `json:"-"`
+	ReflectionError        string    `json:"-"`
 }

@@ -53,3 +53,30 @@
 	height: calc(100% - var(--tab-height)); 
 	overflow-y: scroll;
 }
+
+.context-menu {
+	@apply bg-base-200 rounded-lg shadow-lg border border-base-300 p-1 min-w-48 z-50;
+	animation: contextMenuShow 150ms ease-out;
+}
+
+.context-menu-item {
+	@apply px-3 py-2 rounded-md cursor-pointer outline-none text-base-content text-xs;
+	@apply hover:bg-base-300 focus:bg-base-300;
+	@apply transition-colors duration-150;
+}
+
+.context-menu-item-danger {
+	@apply text-error;
+	@apply hover:bg-error hover:text-error-content focus:bg-error focus:text-error-content;
+}
+
+@keyframes contextMenuShow {
+	from {
+		opacity: 0;
+		transform: scale(0.96);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}

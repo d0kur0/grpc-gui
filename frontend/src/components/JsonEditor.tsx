@@ -1,8 +1,8 @@
-import { onMount, onCleanup, createEffect } from "solid-js";
+import { onMount, onCleanup, createEffect, untrack } from "solid-js";
 import { render } from "solid-js/web";
 import { EditorView, ViewPlugin, WidgetType, ViewUpdate } from "@codemirror/view";
 import { Decoration } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { EditorState, StateEffect } from "@codemirror/state";
 import { javascript } from "@codemirror/lang-javascript";
 import { basicSetup } from "codemirror";
 import { materialDark } from "@ddietr/codemirror-themes/material-dark";
@@ -16,7 +16,7 @@ import { DurationPopover } from "./DurationPopover";
 import "./JsonEditor.css";
 
 export type JsonEditorProps = {
-	value: string;
+	initialValue?: string;
 	onChange?: (value: string) => void;
 	placeholder?: string;
 	readOnly?: boolean;
@@ -169,49 +169,87 @@ const createEnumInfoPlugin = (schema: MessageInfo | null | undefined) => {
 			}
 		}
 		
-		buildDecorations(view: EditorView): any {
-			if (!schema) return this.DecorationClass.none;
-			
-			const decorations: any[] = [];
-			const text = view.state.doc.toString();
-			
-			try {
-				const cleanedText = stripJsonComments(text);
-				const json = JSON.parse(cleanedText);
-				this.findEnumValues(json, "", fields, decorations, view.state);
-			} catch {
-			}
-			
-			return this.DecorationClass.set(decorations);
+	buildDecorations(view: EditorView): any {
+		if (!schema) return this.DecorationClass.none;
+		
+		const decorations: any[] = [];
+		const positions = new Set<number>();
+		const text = view.state.doc.toString();
+		
+		try {
+			const cleanedText = stripJsonComments(text);
+			const json = JSON.parse(cleanedText);
+			this.findEnumValues(json, "", fields, decorations, view.state, positions);
+		} catch {
 		}
 		
-		findEnumValues(
-			obj: any,
-			path: string,
-			fields: Map<string, FieldInfo>,
-			decorations: any[],
-			state: EditorState
-		) {
-			if (typeof obj !== "object" || obj === null) return;
+		decorations.sort((a, b) => a.from - b.from);
+		return this.DecorationClass.set(decorations);
+	}
+		
+	findEnumValues(
+		obj: any,
+		path: string,
+		fields: Map<string, FieldInfo>,
+		decorations: any[],
+		state: EditorState,
+		positions: Set<number>
+	) {
+		if (typeof obj !== "object" || obj === null) return;
+		
+		for (const [key, value] of Object.entries(obj)) {
+			const currentPath = path ? `${path}.${key}` : key;
+			const field = fields.get(currentPath);
 			
-			for (const [key, value] of Object.entries(obj)) {
-				const currentPath = path ? `${path}.${key}` : key;
-				const field = fields.get(currentPath);
+			if (field?.isEnum && field.enumValues && typeof value === "string") {
+				const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const searchPattern = new RegExp(`"${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*:\\s*"${escapedValue}"`, 'g');
+				const text = state.doc.toString();
+				let match;
 				
-				if (field?.isEnum && field.enumValues && typeof value === "string") {
-					const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-					const searchPattern = new RegExp(`"${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*:\\s*"${escapedValue}"`, 'g');
-					const text = state.doc.toString();
-					let match;
+				while ((match = searchPattern.exec(text)) !== null) {
+					const matchStart = match.index;
+					const fullMatch = match[0];
+					const valueStart = matchStart + fullMatch.indexOf(`"${value}"`);
+					const valueEnd = valueStart + value.length + 2;
 					
-					while ((match = searchPattern.exec(text)) !== null) {
-						const matchStart = match.index;
-						const fullMatch = match[0];
-						const valueStart = matchStart + fullMatch.indexOf(`"${value}"`);
-						const valueEnd = valueStart + value.length + 2;
-						
-						const widget = new EnumInfoWidget(field.enumValues, currentPath);
-						
+					if (positions.has(valueEnd)) continue;
+					positions.add(valueEnd);
+					
+					const widget = new EnumInfoWidget(field.enumValues, currentPath);
+					
+					decorations.push(
+						this.DecorationClass.widget({
+							widget,
+							side: 1,
+						}).range(valueEnd)
+					);
+				}
+			}
+			
+			if (field?.isWellKnown && typeof value === "string") {
+				const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+				const searchPattern = new RegExp(`"${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*:\\s*"${escapedValue}"`, 'g');
+				const text = state.doc.toString();
+				let match;
+				
+				while ((match = searchPattern.exec(text)) !== null) {
+					const matchStart = match.index;
+					const fullMatch = match[0];
+					const valueStart = matchStart + fullMatch.indexOf(`"${value}"`);
+					const valueEnd = valueStart + value.length + 2;
+					
+					if (positions.has(valueEnd)) continue;
+					positions.add(valueEnd);
+					
+					let widget;
+					if (field.wellKnownType === "timestamp") {
+						widget = new TimestampInfoWidget(currentPath, (this as any).view, valueEnd);
+					} else if (field.wellKnownType === "duration") {
+						widget = new DurationInfoWidget(currentPath, (this as any).view, valueEnd);
+					}
+					
+					if (widget) {
 						decorations.push(
 							this.DecorationClass.widget({
 								widget,
@@ -220,42 +258,13 @@ const createEnumInfoPlugin = (schema: MessageInfo | null | undefined) => {
 						);
 					}
 				}
-				
-				if (field?.isWellKnown && typeof value === "string") {
-					const escapedValue = value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-					const searchPattern = new RegExp(`"${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*:\\s*"${escapedValue}"`, 'g');
-					const text = state.doc.toString();
-					let match;
-					
-					while ((match = searchPattern.exec(text)) !== null) {
-						const matchStart = match.index;
-						const fullMatch = match[0];
-						const valueStart = matchStart + fullMatch.indexOf(`"${value}"`);
-						const valueEnd = valueStart + value.length + 2;
-						
-						let widget;
-						if (field.wellKnownType === "timestamp") {
-							widget = new TimestampInfoWidget(currentPath, (this as any).view, valueEnd);
-						} else if (field.wellKnownType === "duration") {
-							widget = new DurationInfoWidget(currentPath, (this as any).view, valueEnd);
-						}
-						
-						if (widget) {
-							decorations.push(
-								this.DecorationClass.widget({
-									widget,
-									side: 1,
-								}).range(valueEnd)
-							);
-						}
-					}
-				}
-				
-				if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-					this.findEnumValues(value, currentPath, fields, decorations, state);
-				}
+			}
+			
+			if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+				this.findEnumValues(value, currentPath, fields, decorations, state, positions);
 			}
 		}
+	}
 	}, {
 		decorations: v => v.decorations,
 	});
@@ -319,6 +328,7 @@ const createJsonAutocompletion = (schema: MessageInfo | null | undefined) => {
 export const JsonEditor = (props: JsonEditorProps) => {
 	let editorRef: HTMLDivElement | undefined;
 	let view: EditorView | undefined;
+	let isInternalChange = false;
 
 	onMount(() => {
 		if (!editorRef) return;
@@ -359,7 +369,7 @@ export const JsonEditor = (props: JsonEditorProps) => {
 			selectionTheme,
 			EditorView.lineWrapping,
 			EditorView.updateListener.of((update) => {
-				if (update.docChanged && props.onChange) {
+				if (update.docChanged && !isInternalChange && props.onChange) {
 					props.onChange(update.state.doc.toString());
 				}
 			}),
@@ -380,7 +390,7 @@ export const JsonEditor = (props: JsonEditorProps) => {
 		}
 
 		const startState = EditorState.create({
-			doc: props.value || "",
+			doc: props.initialValue || "",
 			extensions,
 		});
 
@@ -390,18 +400,95 @@ export const JsonEditor = (props: JsonEditorProps) => {
 		});
 	});
 
+
 	createEffect(() => {
+		const schema = props.schema;
+		if (!view || !schema) return;
+		
+		const currentValue = untrack(() => view?.state.doc.toString() || "");
+		
+		view.destroy();
+		
+		const backgroundTheme = EditorView.theme({
+			"&": {
+				height: "100%",
+				backgroundColor: "oklch(var(--b2)) !important",
+			},
+			".cm-gutters": {
+				backgroundColor: "oklch(var(--b2)) !important",
+			},
+			".cm-scroller": {
+				fontFamily: "ui-monospace, monospace",
+			},
+		}, { dark: true });
+
+		const selectionTheme = EditorView.theme({
+			"& .cm-selectionLayer .cm-selectionBackground": {
+				backgroundColor: "rgba(189, 147, 249, 0.20) !important",
+			},
+			"&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
+				backgroundColor: "rgba(189, 147, 249, 0.20) !important",
+			},
+			"& .cm-line ::selection": {
+				color: "oklch(var(--sc)) !important",
+			},
+			"& ::selection": {
+				color: "oklch(var(--sc)) !important",
+			},
+		}, { dark: true });
+
+		const extensions = [
+			basicSetup,
+			javascript(),
+			backgroundTheme,
+			materialDark,
+			selectionTheme,
+			EditorView.lineWrapping,
+			EditorView.updateListener.of((update) => {
+				if (update.docChanged && !isInternalChange && props.onChange) {
+					props.onChange(update.state.doc.toString());
+				}
+			}),
+			EditorState.readOnly.of(props.readOnly || false),
+		];
+
+		if (schema && !props.readOnly) {
+			extensions.push(
+				autocompletion({
+					override: [createJsonAutocompletion(schema)],
+					activateOnTyping: true,
+				})
+			);
+		}
+
+		if (schema) {
+			extensions.push(createEnumInfoPlugin(schema));
+		}
+
+		const startState = EditorState.create({
+			doc: currentValue,
+			extensions,
+		});
+
+		view = new EditorView({
+			state: startState,
+			parent: editorRef!,
+		});
+	});
+
+	createEffect(() => {
+		const value = props.initialValue;
 		if (!view) return;
 		
 		const currentValue = view.state.doc.toString();
-		if (currentValue !== props.value) {
+		if (currentValue !== value) {
+			isInternalChange = true;
 			view.dispatch({
-				changes: {
-					from: 0,
-					to: currentValue.length,
-					insert: props.value,
-				},
+				changes: { from: 0, to: currentValue.length, insert: value || "" },
 			});
+			setTimeout(() => {
+				isInternalChange = false;
+			}, 0);
 		}
 	});
 

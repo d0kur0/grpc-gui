@@ -3,5 +3,6 @@
 
 export type {
     History,
-    Server
+    Server,
+    TabState
 } from "./models.js";

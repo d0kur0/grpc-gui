@@ -41,3 +41,13 @@ export interface Server {
     "optUseTLS": boolean;
     "optInsecure": boolean;
 }
+
+export interface TabState {
+    "tabId": string;
+    "name": string;
+    "component": string;
+    "props": string;
+    "state": string;
+    "isActive": boolean;
+    "order": number;
+}

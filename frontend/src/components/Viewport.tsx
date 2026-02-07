@@ -42,32 +42,27 @@ export const Viewport = (props: ViewportProps) => {
 		<div class="viewport select-none">
 			<div class="viewport__controls">
 				<div class="viewport__title">
-					<button class="cursor-pointer" onClick={() => navigate("/")}>
+					<button class="cursor-pointer mr-1" onClick={() => navigate("/")}>
 						grpc-gui
 					</button>
-					<Show when={props.subtitle}>
-						<FaSolidArrowRightLong />
-						<span class="viewport__subtitle">{props.subtitle}</span>
-					</Show>
+
+					<For each={[
+						{ path: "/", label: "Рабочая область" },
+						{ path: "/history", label: "История запросов" }
+					]}>
+						{item => (
+							<button
+								class="btn transition-all duration-300 ease-in-out btn-xs hover:btn-accent hover:btn-soft"
+								classList={{ "btn-accent btn-soft": location.pathname === item.path }}
+								onClick={() => navigate(item.path)}>
+								{item.label}
+							</button>
+						)}
+					</For>
 				</div>
 
 				<div class="viewport__app-controls">
-					<button 
-						title="Воркспейс" 
-						class="btn btn-xs" 
-						classList={{ "btn-neutral": location.pathname === "/" }}
-						onClick={() => navigate("/")}
-					>
-						<IoHome class="w-4 h-4" />
-					</button>
-					<button 
-						title="История" 
-						class="btn btn-xs" 
-						classList={{ "btn-neutral": location.pathname === "/history" }}
-						onClick={() => navigate("/history")}
-					>
-						<IoTime class="w-4 h-4" />
-					</button>
+
 					<button title="Открыть DevTools" class="btn btn-xs" onClick={Window.OpenDevTools}>
 						<RiDevelopmentTerminalBoxFill class="w-4 h-4" />
 					</button>
@@ -110,7 +105,7 @@ const Notifications = () => {
 	const { notifications } = $notifications;
 
 	return (
-		<div class="absolute bottom-5 right-5 flex flex-col gap-2 max-w-lg">
+		<div class="absolute bottom-5 right-5 flex flex-col gap-2 max-w-lg z-[999]">
 			<For each={notifications()}>
 				{notification => {
 					const Icon = notificationIcons[notification.type];

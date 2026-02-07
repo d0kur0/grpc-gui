@@ -50,26 +50,54 @@ type ServerWithReflection struct {
 	Error      string                    `json:"error,omitempty"`
 }
 
-func (a *App) getServerReflection(ctx context.Context, server models.Server) ServerWithReflection {
+func (a *App) getServerReflection(ctx context.Context, server models.Server, forceRefresh bool) ServerWithReflection {
 	result := ServerWithReflection{
 		Server:     &server,
 		Reflection: &grpcreflect.ServicesInfo{Services: []grpcreflect.ServiceInfo{}},
 	}
 
+	needsRefresh := forceRefresh || 
+		server.ReflectionCache == "" || 
+		time.Since(server.ReflectionCachedAt) > consts.ReflectionCacheTTL ||
+		server.ReflectionAccessCount >= consts.ReflectionCacheRefreshEvery
+
+	if !needsRefresh {
+		if server.ReflectionError != "" {
+			result.Error = server.ReflectionError
+		} else {
+			var cachedReflection grpcreflect.ServicesInfo
+			if err := json.Unmarshal([]byte(server.ReflectionCache), &cachedReflection); err == nil {
+				result.Reflection = &cachedReflection
+			} else {
+				needsRefresh = true
+			}
+		}
+
+		if !needsRefresh {
+			_ = a.storage.IncrementReflectionAccessCount(server.ID)
+			return result
+		}
+	}
+
 	reflector, err := grpcreflect.NewReflector(ctx, server.Address, &utils.GRPCConnectOptions{UseTLS: server.OptUseTLS, Insecure: server.OptInsecure})
 	if err != nil {
-		result.Error = utils.FormatConnectionError(err, server.Address, server.OptUseTLS, server.OptInsecure)
+		errorMsg := utils.FormatConnectionError(err, server.Address, server.OptUseTLS, server.OptInsecure)
+		result.Error = errorMsg
+		_ = a.storage.UpdateReflectionCache(server.ID, "", errorMsg)
 		return result
 	}
 	defer reflector.Close()
 
 	services, err := reflector.GetAllServicesInfo()
 	if err != nil {
+		errorMsg := ""
 		if utils.IsConnectionError(err) {
-			result.Error = utils.FormatConnectionError(err, server.Address, server.OptUseTLS, server.OptInsecure)
+			errorMsg = utils.FormatConnectionError(err, server.Address, server.OptUseTLS, server.OptInsecure)
 		} else {
-			result.Error = utils.FormatReflectionError(err)
+			errorMsg = utils.FormatReflectionError(err)
 		}
+		result.Error = errorMsg
+		_ = a.storage.UpdateReflectionCache(server.ID, "", errorMsg)
 		return result
 	}
 
@@ -84,6 +112,12 @@ func (a *App) getServerReflection(ctx context.Context, server models.Server) Ser
 	}
 
 	result.Reflection = filteredServices
+
+	reflectionJSON, err := json.Marshal(filteredServices)
+	if err == nil {
+		_ = a.storage.UpdateReflectionCache(server.ID, string(reflectionJSON), "")
+	}
+
 	return result
 }
 
@@ -96,9 +130,9 @@ func (a *App) GetServersWithReflection() ([]ServerWithReflection, error) {
 		return nil, err
 	}
 
-	var serversWithReflection []ServerWithReflection
+	serversWithReflection := make([]ServerWithReflection, 0, len(servers))
 	for _, server := range servers {
-		serversWithReflection = append(serversWithReflection, a.getServerReflection(ctx, server))
+		serversWithReflection = append(serversWithReflection, a.getServerReflection(ctx, server, false))
 	}
 
 	return serversWithReflection, nil
@@ -113,7 +147,7 @@ func (a *App) GetServerWithReflection(id uint) (*ServerWithReflection, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	result := a.getServerReflection(ctx, *server)
+	result := a.getServerReflection(ctx, *server, true)
 	return &result, nil
 }
 
@@ -270,3 +304,16 @@ func (a *App) ValidateServerAddress(address string, useTLS, insecure bool) Valid
 func (a *App) ToggleFavoriteServer(serverID uint) error {
 	return a.storage.ToggleFavorite(serverID)
 }
+
+func (a *App) SaveTabStates(tabStates []models.TabState) error {
+	return a.tabStorage.SaveTabs(tabStates)
+}
+
+func (a *App) GetTabStates() ([]models.TabState, error) {
+	return a.tabStorage.LoadTabs()
+}
+
+func (a *App) DeleteTabState(tabID string) error {
+	return a.tabStorage.DeleteTab(tabID)
+}
+

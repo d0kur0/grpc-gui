@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"grpc-gui/internal/models"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -59,6 +60,21 @@ func (s *SQLiteStorage) ToggleFavorite(serverID uint) error {
 	}
 	server.Favorite = !server.Favorite
 	return s.db.Save(&server).Error
+}
+
+func (s *SQLiteStorage) UpdateReflectionCache(serverID uint, reflectionJSON string, reflectionError string) error {
+	updates := map[string]interface{}{
+		"reflection_cache":        reflectionJSON,
+		"reflection_cached_at":    time.Now(),
+		"reflection_access_count": 0,
+		"reflection_error":        reflectionError,
+	}
+	return s.db.Model(&models.Server{}).Where("id = ?", serverID).Updates(updates).Error
+}
+
+func (s *SQLiteStorage) IncrementReflectionAccessCount(serverID uint) error {
+	return s.db.Model(&models.Server{}).Where("id = ?", serverID).
+		UpdateColumn("reflection_access_count", gorm.Expr("reflection_access_count + 1")).Error
 }
 
 func (s *SQLiteStorage) CreateHistory(history *models.History) error {

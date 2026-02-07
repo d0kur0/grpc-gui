@@ -28,6 +28,10 @@ export function DeleteServer(id: number): $CancellablePromise<void> {
     return $Call.ByID(963928181, id);
 }
 
+export function DeleteTabState(tabID: string): $CancellablePromise<void> {
+    return $Call.ByID(1010453490, tabID);
+}
+
 export function DoGRPCRequest(serverId: number, address: string, service: string, method: string, payload: string, requestHeaders: { [_: string]: string } | null, contextValues: { [_: string]: string } | null): $CancellablePromise<[string, number]> {
     return $Call.ByID(531879593, serverId, address, service, method, payload, requestHeaders, contextValues);
 }
@@ -58,6 +62,14 @@ export function GetServers(): $CancellablePromise<models$0.Server[] | null> {
 
 export function GetServersWithReflection(): $CancellablePromise<$models.ServerWithReflection[] | null> {
     return $Call.ByID(3123129712);
+}
+
+export function GetTabStates(): $CancellablePromise<models$0.TabState[] | null> {
+    return $Call.ByID(473154136);
+}
+
+export function SaveTabStates(tabStates: models$0.TabState[] | null): $CancellablePromise<void> {
+    return $Call.ByID(4192036329, tabStates);
 }
 
 export function ToggleFavoriteServer(serverID: number): $CancellablePromise<void> {

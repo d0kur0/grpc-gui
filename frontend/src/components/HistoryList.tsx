@@ -32,7 +32,7 @@ export const HistoryList = () => {
 	});
 
 	const handleOpenRequest = (item: History) => {
-		$tabs.openHistoryRequest(item);
+		$tabs.openRequestTab(item.serverId, item.service, item.method, item);
 	};
 
 	const handleDeleteItem = async (e: MouseEvent, id: number) => {

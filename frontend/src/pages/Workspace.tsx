@@ -2,19 +2,12 @@ import { Viewport } from "../components/Viewport";
 import "./Workspace.css";
 import { WorkspaceServicesMenu } from "../components/WorkspaceServicesMenu";
 import { Tabs } from "../components/Tabs";
+import { WorkspaceLayout } from "../components/WorkspaceLayout";
 
 export const Workspace = () => {
 	return (
 		<Viewport subtitle="workspace">
-			<div class="workspace">
-				<div class="workspace__menu scrollbar">
-					<WorkspaceServicesMenu />
-				</div>
- 
-				<div class="workspace__body">
-					<Tabs />
-				</div>
-			</div>
+			<WorkspaceLayout menu={<WorkspaceServicesMenu />} body={<Tabs />} />
 		</Viewport>
 	);
 };

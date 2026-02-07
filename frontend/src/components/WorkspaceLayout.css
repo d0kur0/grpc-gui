@@ -1,0 +1,44 @@
+@reference "../App.css";
+
+.workspace-layout {
+	display: flex;
+	height: 100%;
+	width: 100%;
+	overflow: hidden;
+}
+
+.workspace-layout__menu {
+	@apply px-6 pr-3 py-4 bg-base-200;
+	flex-shrink: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.workspace-layout__resizer {
+	width: 4px;
+	cursor: col-resize;
+	flex-shrink: 0;
+	position: relative;
+	@apply bg-base-content/5;
+	transition: background-color 0.2s;
+}
+
+.workspace-layout__resizer:hover {
+	@apply bg-secondary/50;
+}
+
+.workspace-layout-resizing .workspace-layout__resizer {
+	@apply bg-secondary;
+}
+
+.workspace-layout-resizing {
+	user-select: none;
+	cursor: col-resize;
+}
+
+.workspace-layout__body {
+	@apply border-l-2 border-base-content/10;
+	flex: 1;
+	overflow: hidden;
+	min-width: 0;
+}

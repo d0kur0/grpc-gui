@@ -1,6 +1,6 @@
 import { createSignal } from "solid-js";
 import * as Popover from "@kobalte/core/popover";
-import { FaSolidClock } from "solid-icons/fa";
+import { ImClock } from "solid-icons/im";
 import { IoCloseSharp } from "solid-icons/io";
 
 type TimestampPopoverProps = {
@@ -24,26 +24,22 @@ export const TimestampPopover = (props: TimestampPopoverProps) => {
 
 	return (
 		<Popover.Root>
-			<Popover.Trigger class="inline-flex items-center ml-1 cursor-pointer text-accent hover:text-accent-focus transition-colors">
-				<FaSolidClock class="w-3 h-3" />
+			<Popover.Trigger class="inline-flex items-center ml-1 cursor-pointer text-secondary hover:text-secondary/60 transition-colors">
+				<ImClock class="w-3.5 h-3.5" />
 			</Popover.Trigger>
 			<Popover.Portal>
 				<Popover.Content class="z-50 rounded-lg border border-base-300 bg-base-100 p-4 shadow-lg min-w-[280px]">
 					<Popover.Arrow />
 					<div class="flex flex-col gap-3">
-						<div class="text-sm font-semibold text-base-content">
-							google.protobuf.Timestamp
-						</div>
-						<div class="text-xs text-base-content/60">
-							RFC3339 format: "2026-02-05T14:05:47Z"
-						</div>
+						<div class="text-sm font-semibold text-base-content">google.protobuf.Timestamp</div>
+						<div class="text-xs text-base-content/60">RFC3339 format: "2026-02-05T14:05:47Z"</div>
 						<div class="divider my-0" />
 						<div class="flex flex-col gap-2">
 							<label class="text-xs text-base-content/80">Date & Time</label>
 							<input
 								type="datetime-local"
 								value={datetime()}
-								onInput={(e) => setDatetime(e.currentTarget.value)}
+								onInput={e => setDatetime(e.currentTarget.value)}
 								class="input input-sm input-bordered"
 							/>
 						</div>
